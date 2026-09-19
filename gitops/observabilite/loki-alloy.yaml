@@ -1,0 +1,71 @@
+# Collecte des logs. Exigence non négociable : logs structurés en JSON,
+# porteurs du trace_id. Un log sans trace_id ne permet pas de remonter
+# au parcours usager concerné, donc ne sert qu'à constater, pas à diagnostiquer.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: monitoring
+data:
+  config.alloy: |
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
+
+    discovery.relabel "pods" {
+      targets = discovery.kubernetes.pods.targets
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        target_label  = "env"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+        target_label  = "app"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_version"]
+        target_label  = "version"
+      }
+      // On ne collecte pas les logs des namespaces techniques bruyants.
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        regex         = "kube-system|monitoring"
+        action        = "drop"
+      }
+    }
+
+    loki.source.kubernetes "pods" {
+      targets    = discovery.relabel.pods.output
+      forward_to = [loki.process.structure.receiver]
+    }
+
+    loki.process "structure" {
+      // Extraction des champs structurés : c'est ce qui rend les logs interrogeables.
+      stage.json {
+        expressions = {
+          level    = "level",
+          trace_id = "trace_id",
+          usager   = "user_id",
+          message  = "message",
+        }
+      }
+      stage.labels {
+        values = { level = "level" }
+      }
+      // Le trace_id devient un lien cliquable vers Tempo dans Grafana.
+      stage.structured_metadata {
+        values = { trace_id = "trace_id" }
+      }
+      // Pseudonymisation : aucun identifiant d'usager en clair dans les logs (RGPD).
+      stage.replace {
+        expression = "(\"user_id\":\")([^\"]+)"
+        replace    = "${1}[pseudonymise]"
+      }
+      forward_to = [loki.write.defaut.receiver]
+    }
+
+    loki.write "defaut" {
+      endpoint {
+        url = "http://loki.monitoring.svc:3100/loki/api/v1/push"
+      }
+    }

@@ -8,7 +8,7 @@ metadata:
   annotations:
     policies.kyverno.io/description: >-
       Toute image doit provenir du registre interne, être référencée par digest
-      et porter une signature Cosign valide émise par la chaîne CI de l'syfFerdinand.
+      et porter une signature Cosign valide émise par la chaîne CI de l'organisation.
 spec:
   validationFailureAction: Enforce      # Audit en dev/recette pendant la montée en charge
   background: true
@@ -17,11 +17,11 @@ spec:
       match:
         any: [{ resources: { kinds: [Pod], namespaces: [prod, recette] } }]
       validate:
-        message: "Seul le registre interne registry.service-public.gouv.tg est autorisé."
+        message: "Seul le registre interne registry.plateforme.gouv est autorisé."
         pattern:
           spec:
             containers:
-              - image: "registry.service-public.gouv.tg/*"
+              - image: "registry.plateforme.gouv/*"
 
     - name: digest-obligatoire
       match:
@@ -37,11 +37,11 @@ spec:
       match:
         any: [{ resources: { kinds: [Pod], namespaces: [prod, recette] } }]
       verifyImages:
-        - imageReferences: ["registry.service-public.gouv.tg/*"]
+        - imageReferences: ["registry.plateforme.gouv/*"]
           attestors:
             - entries:
                 - keyless:
-                    subject: "https://github.com/syfFerdinand/*"
+                    subject: "https://github.com/organisation/*"
                     issuer: "https://token.actions.githubusercontent.com"
           mutateDigest: false
           required: true

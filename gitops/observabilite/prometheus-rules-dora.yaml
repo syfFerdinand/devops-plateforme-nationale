@@ -1,0 +1,76 @@
+# Indicateurs DORA calculés à partir des signaux existants, sans aucune saisie manuelle.
+# Règle posée dans docs/08 §4.4 : tout indicateur nécessitant une collecte manuelle
+# sera abandonné au bout de deux mois. Seule la mesure automatique survit.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: plateforme-dora
+  namespace: monitoring
+  labels: { release: kube-prometheus-stack }
+spec:
+  groups:
+    - name: dora
+      interval: 5m
+      rules:
+        # 1 · Fréquence de déploiement — source : synchronisations Argo CD réussies en prod.
+        - record: dora:frequence_deploiement:7j
+          expr: |
+            sum by (name) (increase(argocd_app_sync_total{phase="Succeeded",dest_namespace="prod"}[7d]))
+        - record: dora:frequence_deploiement:30j
+          expr: |
+            sum by (name) (increase(argocd_app_sync_total{phase="Succeeded",dest_namespace="prod"}[30d]))
+
+        # 2 · Délai de traversée — durée entre l'horodatage du commit et sa mise en production.
+        #     Métrique poussée par le hook PostSync (scripts/annoter-deploiement.sh).
+        - record: dora:delai_traversee:median_30j
+          expr: |
+            quantile_over_time(0.5, deploiement_delai_traversee_secondes{env="prod"}[30d])
+
+        # 3 · Taux d'échec de changement — part des déploiements suivis d'un rollback.
+        - record: dora:taux_echec_changement:30j
+          expr: |
+            (
+              sum(increase(rollout_events_total{reason="RolloutAborted",namespace="prod"}[30d]))
+              +
+              sum(increase(deploiement_rollback_total{env="prod"}[30d]))
+            )
+            /
+            clamp_min(sum(increase(argocd_app_sync_total{phase="Succeeded",dest_namespace="prod"}[30d])), 1)
+
+        # 4 · MTTR — durée médiane entre le début et la résolution d'un incident P1.
+        - record: dora:mttr_secondes:median_30j
+          expr: |
+            quantile_over_time(0.5, incident_duree_secondes{severite="P1"}[30d])
+
+        # Indicateur complémentaire : délai réel de retour arrière, mesuré à chaque exercice
+        # et à chaque rollback réel (objectif < 600 s, docs/08 §4.2).
+        - record: plateforme:duree_rollback:median_90j
+          expr: quantile_over_time(0.5, rollback_duree_secondes[90d])
+
+    - name: dora.alertes
+      rules:
+        - alert: TauxEchecChangementTropEleve
+          expr: dora:taux_echec_changement:30j > 0.10
+          for: 1h
+          labels: { severity: P3, canal: ticket }
+          annotations:
+            resume: "Taux d'échec de changement à {{ $value | humanizePercentage }} (cible < 10 %)"
+            description: >-
+              L'objectif fixé à la direction n'est plus tenu. À examiner au point
+              d'avancement hebdomadaire : les quality gates laissent passer quelque chose.
+
+        - alert: CadenceDeploiementInsuffisante
+          expr: dora:frequence_deploiement:7j < 1
+          for: 24h
+          labels: { severity: P3, canal: ticket }
+          annotations:
+            resume: "Moins d'un déploiement en production cette semaine"
+            description: >-
+              L'engagement de MEP hebdomadaire n'est pas tenu. Vérifier s'il s'agit
+              d'un gel volontaire ou d'un blocage de la chaîne.
+
+        - alert: RollbackTropLent
+          expr: plateforme:duree_rollback:median_90j > 600
+          labels: { severity: P3, canal: ticket }
+          annotations:
+            resume: "Durée médiane de rollback à {{ $value | humanizeDuration }} (objectif < 10 min)"

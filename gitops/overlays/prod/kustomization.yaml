@@ -5,7 +5,7 @@ resources: [../../base]
 # Le digest ci-dessous est EXACTEMENT celui validé en recette.
 # Il n'est modifié que par une PR de promotion approuvée par 2 personnes (CODEOWNERS).
 images:
-  - name: registry.service-public.gouv.tg/app-usagers
+  - name: registry.plateforme.gouv/app-usagers
     digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
 replicas:
   - { name: app-usagers, count: 6 }
@@ -16,4 +16,4 @@ configMapGenerator:
   - name: app-usagers-config
     literals:
       - LOG_LEVEL=info
-      - API_BASE_URL=https://api.service-public.gouv.tg
+      - API_BASE_URL=https://api.plateforme.gouv

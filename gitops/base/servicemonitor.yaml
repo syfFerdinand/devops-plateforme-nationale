@@ -1,0 +1,27 @@
+# La supervision est livrée AVEC l'application, pas ajoutée après coup.
+# Un service sans ServiceMonitor n'a pas de SLI, donc ne peut pas faire l'objet
+# d'un déploiement canary analysé automatiquement (ADR-0003).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: app-usagers
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app-usagers
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      relabelings:
+        # On conserve la version et le nom du rollout : indispensable pour distinguer
+        # la version stable de la version canary pendant l'analyse.
+        - sourceLabels: [__meta_kubernetes_pod_label_app_kubernetes_io_version]
+          targetLabel: version
+        - sourceLabels: [__meta_kubernetes_pod_label_rollouts_pod_template_hash]
+          targetLabel: rollout_hash
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: env

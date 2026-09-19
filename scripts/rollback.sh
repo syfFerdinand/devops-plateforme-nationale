@@ -21,11 +21,15 @@ kubectl argo rollouts status "$SERVICE" -n "$NS" --timeout 300s
 echo "→ Étape 3 : vérification"
 kubectl get pods -n "$NS" -l "app=$SERVICE" -o wide
 if [[ -x ./tests/smoke/run.sh ]]; then
-  ./tests/smoke/run.sh "https://${SERVICE}.service-public.gouv.tg" || echo "⚠️  Tests de fumée en échec, poursuivre l'investigation."
+  ./tests/smoke/run.sh "https://${SERVICE}.plateforme.gouv" || echo "⚠️  Tests de fumée en échec, poursuivre l'investigation."
 fi
 
 DUREE=$(( $(date +%s) - DEBUT ))
 echo "✅ Service rétabli en ${DUREE}s (objectif < 600s)"
+
+# Publication de la mesure : alimente l'indicateur « durée de retour arrière » (docs/08 §4.2)
+./scripts/mesurer-rollback.sh "$SERVICE" "$DUREE" "${TYPE_ROLLBACK:-reel}" || \
+  echo "⚠️  Métrique non publiée, à reporter manuellement au post-mortem."
 echo
 echo "⚠️  ÉTAPE 4 OBLIGATOIRE — sans elle Argo CD redéploiera la version défaillante :"
 echo "    cd platform-gitops && git revert <sha-de-la-PR-de-promotion> --no-edit && git push"

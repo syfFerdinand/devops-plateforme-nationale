@@ -16,12 +16,12 @@ jobs:
       - name: Déclarer l'environnement éphémère dans le dépôt GitOps
         run: |
           # L'ApplicationSet Argo CD détecte la PR et crée le namespace pr-<numéro>.
-          echo "Prévisualisation : https://pr-${{ github.event.number }}.preview.service-public.gouv.tg"
+          echo "Prévisualisation : https://pr-${{ github.event.number }}.preview.plateforme.gouv"
       - uses: marocchino/sticky-pull-request-comment@v2
         with:
           message: |
             🔍 Environnement de prévisualisation :
-            https://pr-${{ github.event.number }}.preview.service-public.gouv.tg
+            https://pr-${{ github.event.number }}.preview.plateforme.gouv
             Détruit automatiquement à la fermeture de la PR.
 
   destroy-preview:

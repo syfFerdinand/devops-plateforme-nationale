@@ -15,7 +15,7 @@ permissions:
   security-events: write
 
 env:
-  REGISTRY: registry.service-public.gouv.tg
+  REGISTRY: registry.plateforme.gouv
   IMAGE_NAME: app-usagers
 
 concurrency:

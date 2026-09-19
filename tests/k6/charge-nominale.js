@@ -17,7 +17,7 @@ export const options = {
   },
 };
 
-const BASE = __ENV.BASE_URL || 'https://api.recette.service-public.gouv.tg';
+const BASE = __ENV.BASE_URL || 'https://api.recette.plateforme.gouv';
 
 export default function () {
   // Parcours usager critique : consultation puis soumission d'une demande.

@@ -1,0 +1,121 @@
+{
+  "uid": "slo-usagers",
+  "title": "SLO — Service usager",
+  "tags": ["slo", "plateforme", "production"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      { "name": "service", "type": "query", "datasource": "Prometheus",
+        "query": "label_values(http_requests_total, service)", "current": { "text": "app-usagers", "value": "app-usagers" } },
+      { "name": "env", "type": "custom", "query": "prod,recette,dev",
+        "current": { "text": "prod", "value": "prod" } }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Déploiements",
+        "datasource": "Grafana",
+        "enable": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "tags": ["deploiement", "$env"],
+        "type": "tags"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "stat", "title": "Disponibilité 30 jours (SLO 99,9 %)",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": {
+        "unit": "percentunit", "decimals": 3, "min": 0.99, "max": 1,
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null },
+          { "color": "orange", "value": 0.999 },
+          { "color": "green", "value": 0.9995 } ] } } },
+      "targets": [ { "refId": "A", "expr": "1 - sli:erreurs:ratio_rate1d{service=\"$service\",env=\"$env\"}" } ]
+    },
+    {
+      "type": "gauge", "title": "Budget d'erreur restant",
+      "description": "Sous 50 %, la fiabilité devient prioritaire sur les nouvelles fonctionnalités (politique de budget d'erreur).",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": {
+        "unit": "percentunit", "min": 0, "max": 1,
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null },
+          { "color": "orange", "value": 0.25 },
+          { "color": "green", "value": 0.5 } ] } } },
+      "targets": [ { "refId": "A", "expr": "slo:budget_erreur:restant_ratio{service=\"$service\",env=\"$env\"}" } ]
+    },
+    {
+      "type": "stat", "title": "Latence p95",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 3,
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null },
+          { "color": "orange", "value": 0.5 },
+          { "color": "red", "value": 1 } ] } } },
+      "targets": [ { "refId": "A", "expr": "sli:latence:p95_5m{service=\"$service\",env=\"$env\"}" } ]
+    },
+    {
+      "type": "stat", "title": "Parcours usagers disponibles",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "green", "value": 4 } ] } } },
+      "targets": [ { "refId": "A", "expr": "sum(probe_success{job=\"parcours-usagers\",env=\"$env\"})" } ]
+    },
+    {
+      "type": "timeseries", "title": "Taux d'erreur vs seuils de burn rate",
+      "description": "Les lignes horizontales correspondent aux seuils d'alerte P1 (14,4x et 6x le budget).",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "custom": { "fillOpacity": 10 } } },
+      "targets": [
+        { "refId": "A", "expr": "sli:erreurs:ratio_rate5m{service=\"$service\",env=\"$env\"}", "legendFormat": "5 min" },
+        { "refId": "B", "expr": "sli:erreurs:ratio_rate1h{service=\"$service\",env=\"$env\"}", "legendFormat": "1 h" },
+        { "refId": "C", "expr": "sli:erreurs:ratio_rate6h{service=\"$service\",env=\"$env\"}", "legendFormat": "6 h" },
+        { "refId": "D", "expr": "vector(0.0144)", "legendFormat": "seuil P1 (14,4x)" },
+        { "refId": "E", "expr": "vector(0.006)", "legendFormat": "seuil P1 (6x)" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Comparaison canary / stable",
+      "description": "Pendant un déploiement progressif, la courbe canary doit rester superposée à la courbe stable. Tout écart déclenche le rollback automatique.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "targets": [
+        { "refId": "A", "expr": "sli:erreurs_par_version:ratio_rate2m{service=\"$service\",env=\"$env\"}", "legendFormat": "version {{version}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Trafic par code de retour",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 13 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "stacking": { "mode": "normal" } } } },
+      "targets": [
+        { "refId": "A", "expr": "sum by (status) (rate(http_requests_total{service=\"$service\",env=\"$env\"}[5m]))", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Latence par quantile",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 13 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"$service\",env=\"$env\"}[5m])))", "legendFormat": "p50" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"$service\",env=\"$env\"}[5m])))", "legendFormat": "p95" },
+        { "refId": "C", "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{service=\"$service\",env=\"$env\"}[5m])))", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "type": "logs", "title": "Erreurs applicatives récentes",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "datasource": "Loki",
+      "options": { "showTime": true, "wrapLogMessage": true },
+      "targets": [
+        { "refId": "A", "expr": "{app=\"$service\", env=\"$env\"} | json | level=\"error\"" }
+      ]
+    }
+  ],
+  "schemaVersion": 39, "version": 1
+}

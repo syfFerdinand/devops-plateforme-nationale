@@ -1,0 +1,64 @@
+# Point d'entrée unique des traces et métriques applicatives.
+# Les applications n'ont à connaître qu'une seule adresse : le collecteur.
+# Changer de back-end (Tempo, Jaeger) ne demande alors aucune modification applicative.
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel
+  namespace: monitoring
+spec:
+  mode: deployment
+  replicas: 2
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc: { endpoint: 0.0.0.0:4317 }
+          http: { endpoint: 0.0.0.0:4318 }
+
+    processors:
+      # Le regroupement par lot est indispensable : sans lui, le volume de traces
+      # d'une plateforme nationale sature le back-end.
+      batch:
+        timeout: 5s
+        send_batch_size: 1024
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 20
+      # Enrichissement systématique : sans ces attributs, on ne peut pas corréler
+      # une trace avec un déploiement.
+      resource:
+        attributes:
+          - { key: deployment.environment, from_attribute: k8s.namespace.name, action: insert }
+          - { key: service.version, from_attribute: k8s.pod.label.app_kubernetes_io_version, action: insert }
+      k8sattributes:
+        extract:
+          metadata: [k8s.namespace.name, k8s.pod.name, k8s.deployment.name, k8s.node.name]
+      # Échantillonnage intelligent : on conserve 100 % des traces en erreur ou lentes,
+      # et seulement 5 % des traces nominales. Coût maîtrisé, diagnostic préservé.
+      tail_sampling:
+        decision_wait: 10s
+        policies:
+          - { name: erreurs, type: status_code, status_code: { status_codes: [ERROR] } }
+          - { name: lentes, type: latency, latency: { threshold_ms: 1000 } }
+          - { name: echantillon, type: probabilistic, probabilistic: { sampling_percentage: 5 } }
+
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.monitoring.svc:4317
+        tls: { insecure: true }
+      prometheus:
+        endpoint: 0.0.0.0:8889
+        resource_to_telemetry_conversion: { enabled: true }
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, resource, tail_sampling, batch]
+          exporters: [otlp/tempo]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, k8sattributes, resource, batch]
+          exporters: [prometheus]

@@ -10,7 +10,8 @@
 
 ## 2. Première question : est-ce lié au déploiement ?
 
-Ouvrir le tableau de bord SLO et repérer l'annotation de déploiement.
+Ouvrir https://grafana.plateforme.gouv/d/slo-usagers et repérer l'annotation de déploiement
+(posée automatiquement par le hook PostSync, cf. `docs/10` §3).
 - Dégradation qui **commence** à l'annotation : traiter comme une régression → rollback.
 - Dégradation **antérieure** à l'annotation : cause externe (dépendance, charge, infrastructure) → ne pas
   rollbacker, investiguer la cause.

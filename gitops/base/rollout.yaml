@@ -41,7 +41,7 @@ spec:
       containers:
         - name: app
           # La référence réelle est injectée par overlay sous forme de digest (ADR-0002).
-          image: registry.service-public.gouv.tg/app-usagers
+          image: registry.plateforme.gouv/app-usagers
           imagePullPolicy: IfNotPresent
           ports:
             - { name: http, containerPort: 8080 }

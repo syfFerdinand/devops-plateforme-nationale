@@ -1,0 +1,93 @@
+# Les règles d'alerte et les tableaux de bord sont du code : ils se valident et se testent.
+name: Observabilité · Validation
+
+on:
+  pull_request:
+    paths:
+      - 'gitops/observabilite/**'
+      - 'gitops/base/slo-rules.yaml'
+      - 'gitops/base/servicemonitor.yaml'
+      - 'tests/prometheus/**'
+  push:
+    branches: [main]
+
+permissions: { contents: read }
+
+jobs:
+  regles-prometheus:
+    name: Règles Prometheus — syntaxe et tests unitaires
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extraire les règles des PrometheusRule
+        run: |
+          mkdir -p /tmp/regles
+          for f in gitops/base/slo-rules.yaml gitops/observabilite/prometheus-rules-*.yaml; do
+            yq '.spec' "$f" > "/tmp/regles/$(basename "$f")"
+          done
+
+      - name: Vérifier la syntaxe PromQL
+        run: promtool check rules /tmp/regles/*.yaml
+
+      - name: Exécuter les tests d'alerte
+        run: promtool test rules tests/prometheus/*-test.yaml
+
+      - name: Toute alerte doit porter un résumé et un runbook
+        run: |
+          MANQUANTS=$(yq -r '
+            .spec.groups[].rules[]
+            | select(has("alert"))
+            | select((.annotations.resume // "") == "" or (.labels.severity // "") == "")
+            | .alert' gitops/base/slo-rules.yaml gitops/observabilite/prometheus-rules-*.yaml)
+          if [ -n "$MANQUANTS" ]; then
+            echo "::error::Alertes sans résumé ou sans sévérité : $MANQUANTS"
+            echo "Règle de discipline (docs/06 §4) : pas d'alerte sans action associée."
+            exit 1
+          fi
+          echo "✅ Toutes les alertes sont documentées."
+
+      - name: Les alertes P1 doivent référencer un runbook
+        run: |
+          SANS_RUNBOOK=$(yq -r '
+            .spec.groups[].rules[]
+            | select(.labels.severity == "P1")
+            | select((.annotations.runbook // "") == "")
+            | .alert' gitops/base/slo-rules.yaml gitops/observabilite/prometheus-rules-*.yaml)
+          if [ -n "$SANS_RUNBOOK" ]; then
+            echo "::error::Alertes P1 sans runbook : $SANS_RUNBOOK"
+            echo "Réveiller quelqu'un sans lui dire quoi faire n'est pas de la supervision."
+            exit 1
+          fi
+          echo "✅ Toutes les P1 référencent un runbook."
+
+  tableaux-de-bord:
+    name: Tableaux de bord Grafana — validité
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validité JSON et champs obligatoires
+        run: |
+          for f in gitops/observabilite/grafana-dashboards/*.json; do
+            jq -e '.uid and .title and (.panels | length > 0)' "$f" > /dev/null \
+              || { echo "::error::Tableau de bord invalide : $f"; exit 1; }
+            echo "✅ $(basename "$f")"
+          done
+      - name: Unicité des identifiants
+        run: |
+          DOUBLONS=$(jq -r '.uid' gitops/observabilite/grafana-dashboards/*.json | sort | uniq -d)
+          [ -z "$DOUBLONS" ] || { echo "::error::UID en double : $DOUBLONS"; exit 1; }
+
+  couverture-supervision:
+    name: Chaque service doit exposer ses SLI
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Un service sans ServiceMonitor ne peut pas être déployé en canary
+        run: |
+          MANIFESTES=$(kustomize build gitops/overlays/prod)
+          echo "$MANIFESTES" | grep -q 'kind: ServiceMonitor' \
+            || { echo "::error::Aucun ServiceMonitor : sans SLI, l'analyse canary est aveugle (ADR-0003)."; exit 1; }
+          echo "$MANIFESTES" | grep -q 'kind: PrometheusRule' \
+            || { echo "::error::Aucune règle SLO définie pour ce service."; exit 1; }
+          echo "✅ Le service livre bien sa supervision."

@@ -4,9 +4,9 @@ kind: AppProject
 metadata: { name: plateforme-prod, namespace: argocd }
 spec:
   description: Applications de production de la plateforme nationale
-  sourceRepos: ['https://github.com/syfFerdinand/platform-gitops.git']
+  sourceRepos: ['https://github.com/organisation/platform-gitops.git']
   destinations:
-    - { server: 'https://prod.k8s.service-public.gouv.tg', namespace: 'prod' }
+    - { server: 'https://prod.k8s.plateforme.gouv', namespace: 'prod' }
   clusterResourceWhitelist: []          # aucune ressource cluster créée depuis une application
   namespaceResourceBlacklist:
     - { group: '', kind: 'ResourceQuota' }

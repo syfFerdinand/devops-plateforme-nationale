@@ -10,6 +10,8 @@ resources:
   - pdb.yaml
   - networkpolicy.yaml
   - externalsecret.yaml
+  - servicemonitor.yaml
+  - slo-rules.yaml
 commonLabels:
   app.kubernetes.io/name: app-usagers
   app.kubernetes.io/part-of: plateforme-nationale

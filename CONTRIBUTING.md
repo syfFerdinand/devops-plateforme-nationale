@@ -27,6 +27,7 @@ Les commits `feat` et `fix` alimentent la génération automatique des notes de 
 - [ ] Tests unitaires ajoutés, couverture du diff >= 80 %
 - [ ] Aucune vulnérabilité `HIGH`/`CRITICAL` introduite
 - [ ] Migration de base compatible avec la version N-1 (expand/contract)
-- [ ] Indicateurs et logs structurés exposés pour la nouvelle fonctionnalité
+- [ ] Indicateurs et logs structurés exposés pour la nouvelle fonctionnalité (voir `docs/10` §4)
+- [ ] SLI impacté identifié : la fonctionnalité est-elle couverte par une alerte existante ?
 - [ ] Documentation et feature flag renseignés
 - [ ] Procédure de retour arrière identifiée

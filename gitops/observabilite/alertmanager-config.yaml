@@ -1,0 +1,79 @@
+# Routage des alertes. Règle de discipline (docs/06 §4) :
+# pas d'alerte sans action associée, pas d'alerte sans runbook.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: plateforme-routage
+  namespace: monitoring
+  labels: { alertmanagerConfig: plateforme }
+spec:
+  route:
+    receiver: canal-equipe
+    groupBy: [alertname, service, env]
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    routes:
+      # P1 : réveille quelqu'un. Regroupement court, répétition fréquente.
+      - receiver: astreinte
+        matchers: [{ name: severity, value: P1 }]
+        groupWait: 10s
+        repeatInterval: 30m
+        continue: true
+      # Toute alerte P1 est aussi publiée sur le canal incidents pour la traçabilité.
+      - receiver: canal-incidents
+        matchers: [{ name: severity, value: P1 }]
+      - receiver: canal-equipe
+        matchers: [{ name: severity, value: P2 }]
+      # P3 : jamais de notification interruptive, un ticket suffit.
+      - receiver: ticket-automatique
+        matchers: [{ name: severity, value: P3 }]
+        groupInterval: 1h
+        repeatInterval: 24h
+      # Hors production : aucune notification, consultation du tableau de bord uniquement.
+      - receiver: silence
+        matchers: [{ name: env, regex: true, value: "dev|recette" }]
+
+  inhibitRules:
+    # Si le service entier est tombé, inutile d'envoyer aussi les alertes de latence.
+    - sourceMatch: [{ name: alertname, value: ParcoursUsagerIndisponible }]
+      targetMatch: [{ name: severity, value: P2 }]
+      equal: [service, env]
+    # Une P1 masque les P2/P3 du même service.
+    - sourceMatch: [{ name: severity, value: P1 }]
+      targetMatch: [{ name: severity, regex: true, value: "P2|P3" }]
+      equal: [service, env]
+
+  receivers:
+    - name: astreinte
+      pagerdutyConfigs:
+        - routingKey: { name: alertmanager-secrets, key: pagerduty-key }
+          description: "{{ .CommonAnnotations.resume }}"
+          severity: critical
+          details:
+            - { key: runbook, value: "{{ .CommonAnnotations.runbook }}" }
+            - { key: dashboard, value: "{{ .CommonAnnotations.dashboard }}" }
+
+    - name: canal-incidents
+      slackConfigs:
+        - apiURL: { name: alertmanager-secrets, key: slack-webhook }
+          channel: "#incidents"
+          title: "🔴 {{ .CommonLabels.severity }} · {{ .CommonAnnotations.resume }}"
+          text: |
+            *Service* : {{ .CommonLabels.service }} ({{ .CommonLabels.env }})
+            *Détail* : {{ .CommonAnnotations.description }}
+            *Runbook* : {{ .CommonAnnotations.runbook }}
+            *Première question* : y a-t-il eu un déploiement récent ? Vérifier les annotations Grafana.
+
+    - name: canal-equipe
+      slackConfigs:
+        - apiURL: { name: alertmanager-secrets, key: slack-webhook }
+          channel: "#plateforme-alertes"
+          title: "🟠 {{ .CommonAnnotations.resume }}"
+
+    - name: ticket-automatique
+      webhookConfigs:
+        - url: http://gestionnaire-tickets.outils.svc/alertes
+          sendResolved: false
+
+    - name: silence

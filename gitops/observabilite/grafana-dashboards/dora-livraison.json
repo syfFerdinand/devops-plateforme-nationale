@@ -1,0 +1,93 @@
+{
+  "uid": "dora-livraison",
+  "title": "DORA — Performance de livraison",
+  "tags": ["dora", "direction", "pilotage"],
+  "timezone": "browser",
+  "refresh": "5m",
+  "time": { "from": "now-90d", "to": "now" },
+  "description": "Tableau de bord de pilotage présenté mensuellement à la direction. Alimenté automatiquement, sans aucune saisie manuelle.",
+  "panels": [
+    {
+      "type": "stat", "title": "1 · Fréquence de déploiement (7 jours)",
+      "description": "Cible à 3 mois : au moins 1 mise en production par semaine.",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0,
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null },
+          { "color": "orange", "value": 1 },
+          { "color": "green", "value": 2 } ] } } },
+      "targets": [ { "refId": "A", "expr": "sum(dora:frequence_deploiement:7j)" } ]
+    },
+    {
+      "type": "stat", "title": "2 · Délai de traversée (médiane 30 j)",
+      "description": "Du commit à la production. Cible : moins de 2 jours.",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null },
+          { "color": "orange", "value": 172800 },
+          { "color": "red", "value": 604800 } ] } } },
+      "targets": [ { "refId": "A", "expr": "dora:delai_traversee:median_30j" } ]
+    },
+    {
+      "type": "stat", "title": "3 · Taux d'échec de changement (30 j)",
+      "description": "Référence initiale estimée : 50 %. Cible à 3 mois : moins de 10 %.",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 1,
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null },
+          { "color": "orange", "value": 0.1 },
+          { "color": "red", "value": 0.2 } ] } } },
+      "targets": [ { "refId": "A", "expr": "dora:taux_echec_changement:30j" } ]
+    },
+    {
+      "type": "stat", "title": "4 · MTTR (médiane 30 j)",
+      "description": "Temps médian de rétablissement après un incident P1. Cible : moins de 30 minutes.",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null },
+          { "color": "orange", "value": 1800 },
+          { "color": "red", "value": 7200 } ] } } },
+      "targets": [ { "refId": "A", "expr": "dora:mttr_secondes:median_30j" } ]
+    },
+    {
+      "type": "timeseries", "title": "Déploiements en production par semaine",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 70 } } },
+      "targets": [ { "refId": "A", "expr": "sum(increase(argocd_app_sync_total{phase=\"Succeeded\",dest_namespace=\"prod\"}[7d]))", "legendFormat": "déploiements" } ]
+    },
+    {
+      "type": "timeseries", "title": "Taux d'échec de changement — tendance",
+      "description": "C'est la courbe qui démontre l'effet de la transformation : elle doit décroître de mois en mois.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "targets": [
+        { "refId": "A", "expr": "dora:taux_echec_changement:30j", "legendFormat": "taux d'échec" },
+        { "refId": "B", "expr": "vector(0.1)", "legendFormat": "cible 10 %" }
+      ]
+    },
+    {
+      "type": "stat", "title": "Durée médiane de retour arrière (90 j)",
+      "description": "Mesurée à chaque rollback réel et à chaque exercice mensuel. Objectif : moins de 10 minutes.",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 14 },
+      "fieldConfig": { "defaults": { "unit": "s",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null }, { "color": "red", "value": 600 } ] } } },
+      "targets": [ { "refId": "A", "expr": "plateforme:duree_rollback:median_90j" } ]
+    },
+    {
+      "type": "stat", "title": "Rollbacks sur 30 jours",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 14 },
+      "targets": [ { "refId": "A", "expr": "sum(increase(rollout_events_total{reason=\"RolloutAborted\",namespace=\"prod\"}[30d])) + sum(increase(deploiement_rollback_total{env=\"prod\"}[30d]))" } ]
+    },
+    {
+      "type": "stat", "title": "Part des rollbacks automatiques",
+      "description": "Un rollback automatique est plus rapide qu'un rollback humain. Cette part doit croître.",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 14 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "targets": [ { "refId": "A", "expr": "sum(increase(rollout_events_total{reason=\"RolloutAborted\",namespace=\"prod\"}[30d])) / clamp_min(sum(increase(rollout_events_total{reason=\"RolloutAborted\",namespace=\"prod\"}[30d])) + sum(increase(deploiement_rollback_total{env=\"prod\"}[30d])), 1)" } ]
+    }
+  ],
+  "schemaVersion": 39, "version": 1
+}

@@ -1,5 +1,9 @@
 # 06 — Tâche 1 : supervision, SLO et exploitation
 
+> **Implémentation** : les règles, tableaux de bord, routage d'alertes et scripts décrits ici sont
+> livrés dans `gitops/observabilite/`, `gitops/base/slo-rules.yaml` et `scripts/`.
+> Voir `docs/10-implementation-supervision.md` pour le mode d'emploi.
+
 ## 1. Principe
 
 La supervision ne sert pas seulement à constater une panne. Dans cette architecture elle est **un composant
@@ -79,3 +83,16 @@ Détection (alerte ou canary) → Qualification P1..P3 → Mitigation (rollback 
 Le post-mortem est systématique pour tout P1 et tout rollback. Sa sortie obligatoire est **au moins une action
 qui rend cette classe d'incident détectable plus tôt dans le pipeline**. C'est le mécanisme qui fait que le
 taux d'échec de changement baisse dans le temps au lieu de stagner.
+
+## 8. Renvois vers l'implémentation
+
+| Section | Fichiers correspondants |
+|---|---|
+| §2 Trois piliers | `gitops/observabilite/otel-collector.yaml`, `loki-alloy.yaml`, `valeurs-kube-prometheus-stack.yaml` |
+| §3 SLI / SLO | `gitops/base/slo-rules.yaml`, `gitops/base/servicemonitor.yaml` |
+| §4 Alerting | `gitops/observabilite/prometheus-rules-plateforme.yaml`, `alertmanager-config.yaml` |
+| §5 Tableaux de bord | `gitops/observabilite/grafana-dashboards/*.json` |
+| §5 Annotation des MEP | `gitops/observabilite/hook-annotation-deploiement.yaml`, `scripts/annoter-deploiement.sh` |
+| §7 Gestion des incidents | `docs/runbooks/incident-post-deploiement.md` |
+| Indicateurs DORA (`docs/08` §4) | `gitops/observabilite/prometheus-rules-dora.yaml`, `scripts/mesurer-rollback.sh` |
+| Tests des alertes | `tests/prometheus/slo-rules-test.yaml`, `.github/workflows/observabilite.yaml` |

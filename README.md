@@ -22,7 +22,9 @@ La cible proposée repose sur cinq décisions structurantes :
    ne passe pas les contrôles ne peut pas atteindre la production.
 4. **Un déploiement progressif (canary) avec analyse automatique** et **retour arrière automatique** en moins
    de 5 minutes si les indicateurs de service se dégradent.
-5. **Des secrets hors du code**, gérés par un coffre-fort (Vault) et injectés par External Secrets Operator,
+5. **Une supervision qui décide** : les mêmes SLI servent à alerter l'astreinte et à promouvoir ou annuler
+   un déploiement canary. Il n'existe pas deux définitions concurrentes de « le service va mal ».
+6. **Des secrets hors du code**, gérés par un coffre-fort (Vault) et injectés par External Secrets Operator,
    avec authentification de la CI par OIDC sans secret longue durée.
 
 Cible mesurée à 3 mois : **1 MEP par semaine minimum**, **taux d'échec de changement < 10 %**, **MTTR < 30 min**,
@@ -35,7 +37,7 @@ Cible mesurée à 3 mois : **1 MEP par semaine minimum**, **taux d'échec de cha
 | Chemin | Contenu |
 |---|---|
 | `docs/00-diagnostic-et-resolutions.md` | Diagnostic, causes racines, décisions de correction |
-| `docs/01-architecture-cible.md` | **Tâche 1** — architecture cible et syfFerdinand de la chaîne |
+| `docs/01-architecture-cible.md` | **Tâche 1** — architecture cible et organisation de la chaîne |
 | `docs/02-pipeline-cicd.md` | **Tâche 1** — étapes détaillées du pipeline et contrôles qualité |
 | `docs/03-environnements-et-configuration.md` | **Tâche 1** — gestion des environnements, suppression des écarts |
 | `docs/04-securite-et-secrets.md` | **Tâche 1** — sécurité applicative, chaîne d'approvisionnement, secrets |
@@ -44,12 +46,14 @@ Cible mesurée à 3 mois : **1 MEP par semaine minimum**, **taux d'échec de cha
 | `docs/07-plan-transformation-90-jours.md` | **Tâche 2** — plan 3 mois, priorités, séquencement |
 | `docs/08-raci-risques-criteres-kpi.md` | **Tâche 2** — responsabilités, risques, critères de MEP, indicateurs |
 | `docs/09-ameliorations-complementaires.md` | Améliorations au-delà du périmètre strict (platform engineering, FinOps, PRA, chaos) |
+| `docs/10-implementation-supervision.md` | Mode d'emploi de la chaîne d'observabilité implémentée |
 | `docs/adr/` | Décisions d'architecture tracées (ADR) |
 | `docs/runbooks/` | Procédures opérationnelles : rollback, incident post-MEP, MEP hebdomadaire |
 | `.github/workflows/` | Implémentation de référence de la CI/CD |
 | `gitops/` | Manifestes Kustomize + Argo CD / Argo Rollouts (base + overlays par environnement) |
+| `gitops/observabilite/` | Socle de supervision : règles SLO, alerting, DORA, tableaux de bord, traces, logs |
 | `policies/kyverno/` | Politiques d'admission (signature d'image, digest obligatoire, sécurité des pods) |
-| `tests/` | Tests de charge k6 et tests de fumée post-déploiement |
+| `tests/` | Tests de charge k6, tests de fumée post-déploiement, tests unitaires des règles d'alerte |
 | `scripts/` | Outillage : rollback assisté, vérification de parité d'environnements |
 
 ## 3. Lecture rapide selon le profil
@@ -57,7 +61,7 @@ Cible mesurée à 3 mois : **1 MEP par semaine minimum**, **taux d'échec de cha
 - **Direction / sponsor** : §1 de ce document, puis `docs/07` et `docs/08`.
 - **Architecte / RSSI** : `docs/01`, `docs/04`, `policies/`.
 - **Équipes de développement** : `docs/02`, `docs/03`, `docs/05`, `CONTRIBUTING.md`.
-- **Exploitation / astreinte** : `docs/05`, `docs/06`, `docs/runbooks/`.
+- **Exploitation / astreinte** : `docs/05`, `docs/06`, `docs/10`, `docs/runbooks/`.
 
 ## 4. Hypothèses de travail
 
@@ -75,6 +79,6 @@ Faute d'accès au système réel, les hypothèses suivantes sont posées et devr
 ```bash
 git init && git add . && git commit -m "feat: chaîne CI/CD cible et plan de transformation DevOps"
 git branch -M main
-git remote add origin git@github.com:<syfFerdinand>/devops-plateforme-nationale.git
+git remote add origin git@github.com:<organisation>/devops-plateforme-nationale.git
 git push -u origin main
 ```

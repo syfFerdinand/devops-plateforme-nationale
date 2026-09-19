@@ -1,0 +1,77 @@
+# Tests unitaires des règles d'alerte (promtool test rules).
+# Une alerte jamais testée est une alerte dont on ignore si elle se déclenchera.
+# Ces tests sont exécutés en CI à chaque modification des règles.
+rule_files:
+  - ../../gitops/base/slo-rules.yaml
+
+evaluation_interval: 1m
+
+tests:
+  # ------------------------------------------------------------------------
+  - name: "Trafic nominal : aucune alerte ne doit se déclencher"
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{service="app-usagers",env="prod",status="200"}'
+        values: '0+1000x120'          # 1000 req/min, aucune erreur
+      - series: 'http_requests_total{service="app-usagers",env="prod",status="500"}'
+        values: '0+0x120'
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: BudgetErreurConsommationTresRapide
+        exp_alerts: []
+      - eval_time: 90m
+        alertname: BudgetErreurConsommationRapide
+        exp_alerts: []
+
+  # ------------------------------------------------------------------------
+  - name: "Régression après déploiement : 5 % d'erreurs doivent déclencher une P1"
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{service="app-usagers",env="prod",status="200"}'
+        values: '0+950x120'
+      - series: 'http_requests_total{service="app-usagers",env="prod",status="500"}'
+        values: '0+50x120'            # 5 % d'erreurs, soit 50x le budget
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: BudgetErreurConsommationTresRapide
+        exp_alerts:
+          - exp_labels:
+              severity: P1
+              equipe: usagers
+              canal: astreinte
+              service: app-usagers
+              env: prod
+            exp_annotations:
+              resume: "Budget d'erreur consommé 14x trop vite sur app-usagers"
+              description: >-
+                Au rythme actuel, le budget d'erreur mensuel sera épuisé en moins de 2 jours. Vérifier d'abord s'il existe une annotation de déploiement récente.
+              runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
+              dashboard: https://grafana.plateforme.gouv/d/slo-usagers
+
+  # ------------------------------------------------------------------------
+  - name: "Pic isolé d'erreurs : ne doit PAS réveiller l'astreinte"
+    interval: 1m
+    input_series:
+      # 3 minutes d'erreurs puis retour à la normale : la fenêtre longue (1 h)
+      # ne dépasse pas le seuil, donc pas de P1. C'est l'intérêt du multi-fenêtre.
+      - series: 'http_requests_total{service="app-usagers",env="prod",status="200"}'
+        values: '0+1000x5 5000+900x3 7700+1000x110'
+      - series: 'http_requests_total{service="app-usagers",env="prod",status="500"}'
+        values: '0+0x5 0+100x3 300+0x110'
+    alert_rule_test:
+      - eval_time: 115m
+        alertname: BudgetErreurConsommationTresRapide
+        exp_alerts: []
+
+  # ------------------------------------------------------------------------
+  - name: "Dégradation lente : ticket, pas de réveil"
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{service="app-usagers",env="prod",status="200"}'
+        values: '0+996x5000'
+      - series: 'http_requests_total{service="app-usagers",env="prod",status="500"}'
+        values: '0+4x5000'            # 0,4 % d'erreurs, soit 4x le budget
+    alert_rule_test:
+      - eval_time: 80h
+        alertname: BudgetErreurConsommationTresRapide
+        exp_alerts: []

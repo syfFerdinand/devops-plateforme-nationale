@@ -1,6 +1,6 @@
 # 08 — Tâche 2 : responsabilités, risques, critères de MEP et indicateurs
 
-## 1. syfFerdinand et responsabilités
+## 1. Organisation et responsabilités
 
 ### 1.1 Rôles
 
@@ -89,7 +89,7 @@ R = Réalise · A = Approuve (décide) · C = Consulté · I = Informé
 | 9 | Migration de base compatible N-1 |
 | 10 | Tests de fumée réussis en recette |
 
-### 3.2 Critères syfFerdinandnels (bloquants, vérifiés par l'humain)
+### 3.2 Critères organisationnels (bloquants, vérifiés par l'humain)
 
 | # | Critère |
 |---|---|

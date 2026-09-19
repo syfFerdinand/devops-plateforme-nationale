@@ -1,0 +1,124 @@
+# Alertes portant sur la chaîne de livraison elle-même.
+# Un pipeline qui se dégrade sans que personne ne le sache redevient un pipeline manuel.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: plateforme-livraison
+  namespace: monitoring
+  labels: { release: kube-prometheus-stack }
+spec:
+  groups:
+    - name: plateforme.deploiement
+      rules:
+        - alert: DeploiementEnEchec
+          expr: |
+            rollout_info_replicas_unavailable{namespace="prod"} > 0
+            and on (rollout, namespace) rollout_phase{phase="Degraded",namespace="prod"} == 1
+          for: 3m
+          labels: { severity: P1, canal: astreinte }
+          annotations:
+            resume: "Rollout {{ $labels.rollout }} dégradé en production"
+            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/rollback-production.md
+
+        - alert: CanaryAbandonne
+          expr: increase(rollout_events_total{reason="RolloutAborted",namespace="prod"}[10m]) > 0
+          labels: { severity: P1, canal: astreinte }
+          annotations:
+            resume: "Le canary de {{ $labels.rollout }} a été abandonné automatiquement"
+            description: >-
+              Le rollback est déjà effectué par Argo Rollouts (niveau N1).
+              Ne pas redéployer : identifier la cause, puis appliquer l'étape 4 du runbook
+              (git revert) pour rétablir la cohérence entre Git et le cluster.
+            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/rollback-production.md
+
+        - alert: DeriveGitOps
+          expr: argocd_app_info{sync_status="OutOfSync",dest_namespace="prod"} == 1
+          for: 5m
+          labels: { severity: P2, canal: equipe }
+          annotations:
+            resume: "Dérive de configuration en production sur {{ $labels.name }}"
+            description: >-
+              Le cluster ne correspond plus à Git depuis plus de 5 minutes.
+              Soit une modification manuelle a été appliquée, soit selfHeal est bloqué.
+
+        - alert: ApplicationArgoDegradee
+          expr: argocd_app_info{health_status=~"Degraded|Missing",dest_namespace="prod"} == 1
+          for: 5m
+          labels: { severity: P1, canal: astreinte }
+          annotations:
+            resume: "Application Argo CD {{ $labels.name }} en état {{ $labels.health_status }}"
+
+        - alert: SynchronisationArgoEnEchecRepetee
+          expr: increase(argocd_app_sync_total{phase="Failed"}[30m]) >= 3
+          labels: { severity: P2, canal: equipe }
+          annotations:
+            resume: "3 échecs de synchronisation en 30 min sur {{ $labels.name }}"
+
+    - name: plateforme.securite
+      rules:
+        - alert: CertificatBientotExpire
+          expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 15
+          labels: { severity: P3, canal: ticket }
+          annotations:
+            resume: "Certificat {{ $labels.name }} expire dans {{ $value | humanize }} jours"
+
+        - alert: SecretVaultBientotExpire
+          expr: (externalsecret_sync_calls_error > 0)
+          for: 15m
+          labels: { severity: P2, canal: equipe }
+          annotations:
+            resume: "External Secrets ne parvient plus à synchroniser {{ $labels.name }}"
+            description: "Risque de démarrage impossible au prochain redémarrage de pod."
+
+        - alert: ViolationPolitiqueKyverno
+          expr: increase(kyverno_policy_results_total{policy_validation_mode="enforce",rule_result="fail"}[15m]) > 0
+          labels: { severity: P2, canal: equipe }
+          annotations:
+            resume: "Ressource refusée par la politique {{ $labels.policy_name }}"
+            description: "Une tentative de déploiement non conforme a été bloquée à l'admission."
+
+    - name: plateforme.capacite
+      rules:
+        - alert: SaturationCPUNamespace
+          expr: |
+            sum by (namespace) (rate(container_cpu_usage_seconds_total{namespace="prod"}[5m]))
+            /
+            sum by (namespace) (kube_resourcequota{namespace="prod",resource="requests.cpu",type="hard"})
+            > 0.8
+          for: 30m
+          labels: { severity: P3, canal: ticket }
+          annotations:
+            resume: "Consommation CPU du namespace prod au-delà de 80 % du quota"
+
+        - alert: RedemarragesRepetes
+          expr: increase(kube_pod_container_status_restarts_total{namespace="prod"}[1h]) > 5
+          labels: { severity: P2, canal: equipe }
+          annotations:
+            resume: "{{ $labels.pod }} a redémarré {{ $value }} fois en 1 h"
+
+        - alert: HPASature
+          expr: kube_horizontalpodautoscaler_status_current_replicas{namespace="prod"}
+                >= kube_horizontalpodautoscaler_spec_max_replicas{namespace="prod"}
+          for: 15m
+          labels: { severity: P2, canal: equipe }
+          annotations:
+            resume: "HPA {{ $labels.horizontalpodautoscaler }} au maximum de répliques"
+            description: "Plus aucune marge d'absorption de charge. Revoir maxReplicas ou le dimensionnement."
+
+    - name: plateforme.parcours-usagers
+      rules:
+        # Supervision synthétique : on teste le parcours usager en continu,
+        # sans attendre qu'un usager réel rencontre la panne.
+        - alert: ParcoursUsagerIndisponible
+          expr: probe_success{job="parcours-usagers",env="prod"} == 0
+          for: 2m
+          labels: { severity: P1, canal: astreinte }
+          annotations:
+            resume: "Parcours usager {{ $labels.instance }} indisponible depuis 2 min"
+            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
+
+        - alert: CertificatTLSParcoursExpire
+          expr: (probe_ssl_earliest_cert_expiry{env="prod"} - time()) / 86400 < 20
+          labels: { severity: P3, canal: ticket }
+          annotations:
+            resume: "Certificat TLS de {{ $labels.instance }} expire dans {{ $value | humanize }} jours"

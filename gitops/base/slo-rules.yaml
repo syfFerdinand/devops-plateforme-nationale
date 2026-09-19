@@ -1,0 +1,140 @@
+# SLI, SLO et budget d'erreur du service — livrés avec l'application.
+# Méthode : recording rules pour les SLI, puis alerting multi-fenêtre sur la vitesse
+# de consommation du budget d'erreur (burn rate). Cf. docs/06 §3 et §4.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: app-usagers-slo
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    # ----------------------------------------------------------------- SLI
+    - name: app-usagers.sli
+      interval: 30s
+      rules:
+        # Taux d'erreur (SLI de disponibilité) sur plusieurs fenêtres.
+        - record: sli:erreurs:ratio_rate5m
+          expr: |
+            sum by (service, env) (rate(http_requests_total{service="app-usagers",status=~"5.."}[5m]))
+            /
+            sum by (service, env) (rate(http_requests_total{service="app-usagers"}[5m]))
+        - record: sli:erreurs:ratio_rate30m
+          expr: |
+            sum by (service, env) (rate(http_requests_total{service="app-usagers",status=~"5.."}[30m]))
+            /
+            sum by (service, env) (rate(http_requests_total{service="app-usagers"}[30m]))
+        - record: sli:erreurs:ratio_rate1h
+          expr: |
+            sum by (service, env) (rate(http_requests_total{service="app-usagers",status=~"5.."}[1h]))
+            /
+            sum by (service, env) (rate(http_requests_total{service="app-usagers"}[1h]))
+        - record: sli:erreurs:ratio_rate6h
+          expr: |
+            sum by (service, env) (rate(http_requests_total{service="app-usagers",status=~"5.."}[6h]))
+            /
+            sum by (service, env) (rate(http_requests_total{service="app-usagers"}[6h]))
+        - record: sli:erreurs:ratio_rate1d
+          expr: |
+            sum by (service, env) (rate(http_requests_total{service="app-usagers",status=~"5.."}[1d]))
+            /
+            sum by (service, env) (rate(http_requests_total{service="app-usagers"}[1d]))
+        - record: sli:erreurs:ratio_rate3d
+          expr: |
+            sum by (service, env) (rate(http_requests_total{service="app-usagers",status=~"5.."}[3d]))
+            /
+            sum by (service, env) (rate(http_requests_total{service="app-usagers"}[3d]))
+
+        # SLI de latence : part des requêtes servies sous 500 ms.
+        - record: sli:latence:ratio_rate5m
+          expr: |
+            sum by (service, env) (rate(http_request_duration_seconds_bucket{service="app-usagers",le="0.5"}[5m]))
+            /
+            sum by (service, env) (rate(http_request_duration_seconds_count{service="app-usagers"}[5m]))
+        - record: sli:latence:p95_5m
+          expr: |
+            histogram_quantile(0.95, sum by (le, service, env) (
+              rate(http_request_duration_seconds_bucket{service="app-usagers"}[5m])))
+
+        # SLI par version : permet de comparer canary et stable sur le même graphe.
+        - record: sli:erreurs_par_version:ratio_rate2m
+          expr: |
+            sum by (service, env, version) (rate(http_requests_total{service="app-usagers",status=~"5.."}[2m]))
+            /
+            sum by (service, env, version) (rate(http_requests_total{service="app-usagers"}[2m]))
+
+    # ------------------------------------------------------- Budget d'erreur
+    - name: app-usagers.budget
+      interval: 1m
+      rules:
+        # Objectif 99,9 % : budget d'erreur = 0,1 % des requêtes sur 30 jours.
+        - record: slo:objectif:ratio
+          expr: vector(0.999)
+          labels: { service: app-usagers }
+        - record: slo:budget_erreur:restant_ratio
+          expr: |
+            1 - (
+              sum by (service, env) (increase(http_requests_total{service="app-usagers",status=~"5.."}[30d]))
+              /
+              (sum by (service, env) (increase(http_requests_total{service="app-usagers"}[30d])) * 0.001)
+            )
+
+    # ------------------------------------------------------------- Alerting
+    # Multi-fenêtre / multi-burn-rate : une fenêtre courte confirme l'urgence,
+    # une fenêtre longue évite les fausses alertes sur un pic isolé.
+    - name: app-usagers.alertes-slo
+      rules:
+        - alert: BudgetErreurConsommationTresRapide
+          expr: |
+            sli:erreurs:ratio_rate5m{env="prod"} > (14.4 * 0.001)
+            and
+            sli:erreurs:ratio_rate1h{env="prod"} > (14.4 * 0.001)
+          for: 2m
+          labels: { severity: P1, equipe: usagers, canal: astreinte }
+          annotations:
+            resume: "Budget d'erreur consommé 14x trop vite sur {{ $labels.service }}"
+            description: >-
+              Au rythme actuel, le budget d'erreur mensuel sera épuisé en moins de 2 jours.
+              Vérifier d'abord s'il existe une annotation de déploiement récente.
+            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
+            dashboard: https://grafana.plateforme.gouv/d/slo-usagers
+
+        - alert: BudgetErreurConsommationRapide
+          expr: |
+            sli:erreurs:ratio_rate30m{env="prod"} > (6 * 0.001)
+            and
+            sli:erreurs:ratio_rate6h{env="prod"} > (6 * 0.001)
+          for: 15m
+          labels: { severity: P1, equipe: usagers, canal: astreinte }
+          annotations:
+            resume: "Budget d'erreur consommé 6x trop vite sur {{ $labels.service }}"
+            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
+
+        - alert: BudgetErreurConsommationLente
+          expr: |
+            sli:erreurs:ratio_rate6h{env="prod"} > (3 * 0.001)
+            and
+            sli:erreurs:ratio_rate3d{env="prod"} > (3 * 0.001)
+          for: 1h
+          labels: { severity: P3, equipe: usagers, canal: ticket }
+          annotations:
+            resume: "Érosion lente du budget d'erreur sur {{ $labels.service }}"
+            description: "Pas d'urgence, mais à traiter avant la fin du mois."
+
+        - alert: BudgetErreurPresqueEpuise
+          expr: slo:budget_erreur:restant_ratio{env="prod"} < 0.5
+          for: 10m
+          labels: { severity: P2, equipe: usagers, canal: equipe }
+          annotations:
+            resume: "Moins de 50 % du budget d'erreur restant pour le mois"
+            description: >-
+              Politique de budget d'erreur (docs/06 §3) : la fiabilité devient prioritaire
+              sur les nouvelles fonctionnalités jusqu'au rétablissement.
+
+        - alert: LatenceDegradee
+          expr: sli:latence:p95_5m{env="prod"} > 1.0
+          for: 10m
+          labels: { severity: P2, equipe: usagers, canal: equipe }
+          annotations:
+            resume: "p95 de latence à {{ $value | humanizeDuration }} (référence 500 ms)"
+            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md

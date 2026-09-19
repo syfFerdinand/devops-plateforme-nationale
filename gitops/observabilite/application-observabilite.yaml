@@ -1,0 +1,25 @@
+# La supervision est gérée exactement comme les applications : en GitOps.
+# Une règle d'alerte se modifie par Pull Request, jamais dans l'interface de Grafana.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observabilite
+  namespace: argocd
+spec:
+  project: plateforme
+  sources:
+    # 1. Le socle technique, via le chart officiel, version épinglée.
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 62.3.0
+      helm:
+        valueFiles: [$config/gitops/observabilite/valeurs-kube-prometheus-stack.yaml]
+    # 2. Notre configuration : règles, routage, tableaux de bord.
+    - repoURL: https://github.com/organisation/platform-gitops.git
+      targetRevision: main
+      path: gitops/observabilite
+      ref: config
+  destination: { server: https://kubernetes.default.svc, namespace: monitoring }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

@@ -9,10 +9,10 @@ metadata:
 spec:
   project: plateforme-prod
   source:
-    repoURL: https://github.com/syfFerdinand/platform-gitops.git
+    repoURL: https://github.com/organisation/platform-gitops.git
     targetRevision: main
     path: gitops/overlays/prod
-  destination: { server: https://prod.k8s.service-public.gouv.tg, namespace: prod }
+  destination: { server: https://prod.k8s.plateforme.gouv, namespace: prod }
   syncPolicy:
     # En production : on corrige la dérive (selfHeal) mais on ne supprime jamais
     # automatiquement une ressource (prune: false). Une suppression est un acte volontaire.

@@ -1,0 +1,68 @@
+# Valeurs Helm du socle de supervision.
+prometheus:
+  prometheusSpec:
+    retention: 15d                     # rétention courte localement
+    retentionSize: 45GB
+    # Thanos prend le relais pour la rétention longue, nécessaire au suivi DORA sur 30 et 90 jours.
+    thanos:
+      objectStorageConfig: { existingSecret: { name: thanos-objstore, key: objstore.yml } }
+    replicas: 2                        # haute disponibilité : la supervision décide des rollbacks
+    # Les règles et ServiceMonitors sont découverts dans TOUS les namespaces :
+    # chaque application livre ses propres SLI.
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          resources: { requests: { storage: 50Gi } }
+    resources:
+      requests: { cpu: 500m, memory: 4Gi }
+      limits: { memory: 8Gi }
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 3                        # quorum : aucune alerte perdue si un nœud tombe
+    alertmanagerConfigSelector:
+      matchLabels: { alertmanagerConfig: plateforme }
+    alertmanagerConfigMatcherStrategy: { type: None }
+
+grafana:
+  replicas: 2
+  defaultDashboardsEnabled: true
+  # Authentification déléguée au fournisseur d'identité de l'administration.
+  grafana.ini:
+    auth.generic_oauth:
+      enabled: true
+      name: Compte agent
+      allow_sign_up: true
+    users: { auto_assign_org_role: Viewer }    # lecture par défaut, édition sur demande
+    security: { disable_gravatar: true }
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki.monitoring.svc:3100
+      jsonData:
+        # Le trace_id d'un log devient un lien direct vers la trace : c'est ce qui
+        # permet de passer d'une alerte à la requête fautive en deux clics.
+        derivedFields:
+          - name: TraceID
+            matcherRegex: '"trace_id":"(\w+)"'
+            url: '$${__value.raw}'
+            datasourceUid: tempo
+    - name: Tempo
+      type: tempo
+      uid: tempo
+      url: http://tempo.monitoring.svc:3200
+    - name: Thanos
+      type: prometheus
+      url: http://thanos-query.monitoring.svc:9090
+
+nodeExporter: { enabled: true }
+kubeStateMetrics: { enabled: true }

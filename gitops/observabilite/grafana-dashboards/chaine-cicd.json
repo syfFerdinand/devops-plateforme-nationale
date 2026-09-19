@@ -1,0 +1,53 @@
+{
+  "uid": "chaine-cicd",
+  "title": "Chaîne CI/CD — santé du pipeline",
+  "tags": ["cicd", "plateforme"],
+  "refresh": "1m",
+  "time": { "from": "now-7d", "to": "now" },
+  "description": "Un pipeline lent ou instable pousse les équipes à le contourner. Il se supervise comme un service.",
+  "panels": [
+    {
+      "type": "stat", "title": "Applications désynchronisées (prod)",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
+        { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } },
+      "targets": [ { "refId": "A", "expr": "count(argocd_app_info{sync_status=\"OutOfSync\",dest_namespace=\"prod\"})" } ]
+    },
+    {
+      "type": "stat", "title": "Applications en mauvaise santé",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "targets": [ { "refId": "A", "expr": "count(argocd_app_info{health_status=~\"Degraded|Missing\"})" } ]
+    },
+    {
+      "type": "stat", "title": "Images non signées en production",
+      "description": "Doit rester à zéro : toute image doit porter une signature Cosign valide.",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
+        { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } },
+      "targets": [ { "refId": "A", "expr": "sum(chaine_image_non_signee{env=\"prod\"}) or vector(0)" } ]
+    },
+    {
+      "type": "stat", "title": "CVE critiques ouvertes",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "targets": [ { "refId": "A", "expr": "sum(securite_cve_ouvertes{severite=\"CRITICAL\"}) or vector(0)" } ]
+    },
+    {
+      "type": "timeseries", "title": "Violations bloquées à l'admission (Kyverno)",
+      "description": "Chaque barre est un déploiement non conforme qui n'a pas atteint le cluster.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "targets": [ { "refId": "A", "expr": "sum by (policy_name) (increase(kyverno_policy_results_total{rule_result=\"fail\"}[1h]))", "legendFormat": "{{policy_name}}" } ]
+    },
+    {
+      "type": "timeseries", "title": "Synchronisations Argo CD par résultat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "targets": [ { "refId": "A", "expr": "sum by (phase) (increase(argocd_app_sync_total[1h]))", "legendFormat": "{{phase}}" } ]
+    },
+    {
+      "type": "timeseries", "title": "Durée des synchronisations en production",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 13 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [ { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(argocd_app_reconcile_bucket{dest_namespace=\"prod\"}[15m])))", "legendFormat": "p95" } ]
+    }
+  ],
+  "schemaVersion": 39, "version": 1
+}

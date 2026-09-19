@@ -5,20 +5,20 @@ metadata: { name: previews-pr, namespace: argocd }
 spec:
   generators:
     - pullRequest:
-        github: { owner: syfFerdinand, repo: app-usagers, labels: [preview] }
+        github: { owner: organisation, repo: app-usagers, labels: [preview] }
         requeueAfterSeconds: 60
   template:
     metadata: { name: 'preview-pr-{{number}}' }
     spec:
       project: plateforme-preview
       source:
-        repoURL: https://github.com/syfFerdinand/platform-gitops.git
+        repoURL: https://github.com/organisation/platform-gitops.git
         targetRevision: main
         path: gitops/overlays/dev
         kustomize:
           namePrefix: 'pr-{{number}}-'
-          images: ['registry.service-public.gouv.tg/app-usagers@{{head_sha}}']
-      destination: { server: https://horsprod.k8s.service-public.gouv.tg, namespace: 'pr-{{number}}' }
+          images: ['registry.plateforme.gouv/app-usagers@{{head_sha}}']
+      destination: { server: https://horsprod.k8s.plateforme.gouv, namespace: 'pr-{{number}}' }
       syncPolicy:
         automated: { prune: true, selfHeal: true }
         syncOptions: [CreateNamespace=true]
