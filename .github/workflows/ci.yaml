@@ -1,0 +1,147 @@
+# CI — Intégration continue : contrôles, build, SBOM, signature, publication.
+# Étapes 1 à 9 de docs/02-pipeline-cicd.md
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write        # OIDC : signature keyless Cosign + authentification Vault
+  security-events: write
+
+env:
+  REGISTRY: registry.service-public.gouv.tg
+  IMAGE_NAME: app-usagers
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------- 1. Statique
+  lint:
+    name: 1 · Lint et validation statique
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Lint du code
+        run: make lint
+      - name: Validation des manifestes Kubernetes
+        run: |
+          kustomize build gitops/overlays/dev | kubeconform -strict -summary -
+      - name: Politiques (Conftest)
+        run: |
+          kustomize build gitops/overlays/prod | conftest test --policy policies/ -
+
+  # ---------------------------------------------------------------- 2-3. Tests
+  test-unit:
+    name: 2 · Tests unitaires et couverture
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: make test-unit
+      - name: Quality gate SonarQube (bloquant)
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+
+  # ---------------------------------------------------------------- 4-5. Sécurité
+  security-static:
+    name: 4-5 · SAST, secrets et dépendances
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Détection de secrets (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+      - name: SAST (Semgrep)
+        run: semgrep ci --config auto --sarif -o semgrep.sarif
+        continue-on-error: false
+
+      - name: SCA — dépendances (Trivy)
+        run: |
+          trivy fs . \
+            --scanners vuln,license \
+            --severity HIGH,CRITICAL \
+            --ignorefile .trivyignore \
+            --exit-code 1 \
+            --format sarif -o trivy-fs.sarif
+
+      - name: Publication des résultats
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: . }
+
+  # ---------------------------------------------------------------- 6-9. Artefact
+  build-and-sign:
+    name: 6-9 · Build, SBOM, signature, publication
+    needs: [lint, test-unit, security-static]
+    runs-on: [self-hosted, linux, ephemeral]
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Authentification au registre (OIDC, sans secret longue durée)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.HARBOR_ROBOT }}
+          password: ${{ secrets.HARBOR_TOKEN }}
+
+      - name: Build reproductible et publication
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.ref == 'refs/heads/main' }}
+          provenance: mode=max          # attestation SLSA
+          sbom: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.created=${{ github.event.repository.updated_at }}
+          build-args: SOURCE_DATE_EPOCH=0
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+      - name: SBOM CycloneDX (Syft)
+        run: |
+          syft "${REGISTRY}/${IMAGE_NAME}@${{ steps.build.outputs.digest }}" \
+            -o cyclonedx-json=sbom.json
+
+      - name: 7 · Scan de l'image (bloquant)
+        run: |
+          trivy image "${REGISTRY}/${IMAGE_NAME}@${{ steps.build.outputs.digest }}" \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+
+      - name: 8 · Signature keyless et attestation SBOM
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMG="${REGISTRY}/${IMAGE_NAME}@${{ steps.build.outputs.digest }}"
+          cosign sign --yes "$IMG"
+          cosign attest --yes --predicate sbom.json --type cyclonedx "$IMG"
+
+      - name: 9 · Demande de promotion en DEV
+        if: github.ref == 'refs/heads/main'
+        uses: ./.github/actions/open-promotion-pr
+        with:
+          environment: dev
+          digest: ${{ steps.build.outputs.digest }}

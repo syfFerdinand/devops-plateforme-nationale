@@ -1,0 +1,8 @@
+# Les approbations requises découlent de la séparation des tâches (docs/04 §5).
+*                          @syfFerdinand/equipe-plateforme
+
+# La production exige l'équipe plateforme ET la sécurité.
+/gitops/overlays/prod/     @syfFerdinand/equipe-plateforme @syfFerdinand/rssi
+/policies/                 @syfFerdinand/rssi @syfFerdinand/equipe-plateforme
+/.github/workflows/        @syfFerdinand/equipe-plateforme
+/docs/adr/                 @syfFerdinand/equipe-plateforme

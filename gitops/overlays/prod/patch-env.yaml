@@ -1,0 +1,6 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata: { name: app-usagers-secrets }
+spec:
+  dataFrom:
+    - extract: { key: secret/plateforme/prod/app-usagers }

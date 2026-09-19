@@ -1,0 +1,11 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata: { name: app-usagers }
+spec:
+  strategy:
+    $retainKeys: [blueGreen]
+    blueGreen:
+      activeService: app-usagers
+      previewService: app-usagers-canary
+      autoPromotionEnabled: false          # promotion manuelle : on valide la bascule
+      scaleDownDelaySeconds: 600           # l'ancienne version reste prête 10 min pour un retour immédiat

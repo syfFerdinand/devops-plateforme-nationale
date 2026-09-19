@@ -1,0 +1,41 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: securite-des-pods
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: execution-non-root
+      match: { any: [{ resources: { kinds: [Pod] } }] }
+      validate:
+        message: "Les conteneurs doivent s'exécuter avec un utilisateur non privilégié."
+        pattern:
+          spec:
+            =(securityContext):
+              runAsNonRoot: true
+            containers:
+              - =(securityContext):
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+
+    - name: ressources-obligatoires
+      match: { any: [{ resources: { kinds: [Pod] } }] }
+      validate:
+        message: "requests et limits sont obligatoires : sans elles, l'ordonnanceur et l'HPA sont aveugles."
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  requests: { cpu: "?*", memory: "?*" }
+                  limits: { memory: "?*" }
+
+    - name: probes-obligatoires
+      match: { any: [{ resources: { kinds: [Pod], namespaces: [prod, recette] } }] }
+      validate:
+        message: "readinessProbe et livenessProbe sont obligatoires : sans elles le déploiement progressif ne peut rien détecter."
+        pattern:
+          spec:
+            containers:
+              - livenessProbe: { "?*": "?*" }
+                readinessProbe: { "?*": "?*" }

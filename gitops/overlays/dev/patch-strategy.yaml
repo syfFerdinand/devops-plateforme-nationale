@@ -1,0 +1,10 @@
+# En développement on privilégie la vitesse : pas de canary.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata: { name: app-usagers }
+spec:
+  strategy:
+    $retainKeys: [canary]
+    canary:
+      steps:
+        - setWeight: 100

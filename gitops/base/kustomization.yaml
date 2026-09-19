@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Socle commun aux trois environnements. Tout ce qui est ici est NON négociable
+# par overlay : sécurité, probes, politiques réseau, topologie.
+resources:
+  - rollout.yaml
+  - service.yaml
+  - service-canary.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
+  - externalsecret.yaml
+commonLabels:
+  app.kubernetes.io/name: app-usagers
+  app.kubernetes.io/part-of: plateforme-nationale

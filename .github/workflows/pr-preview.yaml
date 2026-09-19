@@ -1,0 +1,31 @@
+# Environnement éphémère par Pull Request (namespace pr-<numéro>), détruit à la fermeture.
+name: Prévisualisation par PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+
+permissions: { contents: read, pull-requests: write }
+
+jobs:
+  deploy-preview:
+    if: github.event.action != 'closed'
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Déclarer l'environnement éphémère dans le dépôt GitOps
+        run: |
+          # L'ApplicationSet Argo CD détecte la PR et crée le namespace pr-<numéro>.
+          echo "Prévisualisation : https://pr-${{ github.event.number }}.preview.service-public.gouv.tg"
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            🔍 Environnement de prévisualisation :
+            https://pr-${{ github.event.number }}.preview.service-public.gouv.tg
+            Détruit automatiquement à la fermeture de la PR.
+
+  destroy-preview:
+    if: github.event.action == 'closed'
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - run: echo "Suppression du namespace pr-${{ github.event.number }} par l'ApplicationSet."

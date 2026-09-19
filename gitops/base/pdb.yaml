@@ -1,0 +1,8 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: app-usagers
+spec:
+  minAvailable: 70%
+  selector:
+    matchLabels: { app: app-usagers }

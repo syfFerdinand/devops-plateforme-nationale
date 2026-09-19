@@ -1,0 +1,8 @@
+# Dérogations de sécurité — chaque ligne DOIT porter une date d'expiration (exp:AAAA-MM-JJ).
+# Une dérogation expirée fait échouer le pipeline (scripts/check-exceptions.sh).
+# Revue mensuelle par le Chef DevOps et le RSSI.
+#
+# Format : CVE-XXXX-YYYYY  # exp:2026-03-31 — justification, porteur
+#
+# Exemple :
+# CVE-2025-12345  # exp:2026-02-28 — non exploitable (composant non chargé), correctif amont attendu, porteur: equipe-usagers
