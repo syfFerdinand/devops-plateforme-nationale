@@ -17,7 +17,7 @@ spec:
       serviceAccountName: annotateur-deploiement
       containers:
         - name: annoter
-          image: registry.plateforme.gouv/outils/annotateur:1.2.0
+          image: registry.service-public.gouv.tg/outils/annotateur:1.2.0
           command: ["/bin/sh", "/scripts/annoter-deploiement.sh"]
           env:
             - name: SERVICE

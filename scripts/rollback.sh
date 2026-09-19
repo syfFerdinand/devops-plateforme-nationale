@@ -21,7 +21,7 @@ kubectl argo rollouts status "$SERVICE" -n "$NS" --timeout 300s
 echo "→ Étape 3 : vérification"
 kubectl get pods -n "$NS" -l "app=$SERVICE" -o wide
 if [[ -x ./tests/smoke/run.sh ]]; then
-  ./tests/smoke/run.sh "https://${SERVICE}.plateforme.gouv" || echo "⚠️  Tests de fumée en échec, poursuivre l'investigation."
+  ./tests/smoke/run.sh "https://${SERVICE}.service-public.gouv.tg" || echo "⚠️  Tests de fumée en échec, poursuivre l'investigation."
 fi
 
 DUREE=$(( $(date +%s) - DEBUT ))

@@ -96,8 +96,8 @@ spec:
             description: >-
               Au rythme actuel, le budget d'erreur mensuel sera épuisé en moins de 2 jours.
               Vérifier d'abord s'il existe une annotation de déploiement récente.
-            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
-            dashboard: https://grafana.plateforme.gouv/d/slo-usagers
+            runbook: https://github.com/syfFerdinand/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
+            dashboard: https://grafana.service-public.gouv.tg/d/slo-usagers
 
         - alert: BudgetErreurConsommationRapide
           expr: |
@@ -108,7 +108,7 @@ spec:
           labels: { severity: P1, equipe: usagers, canal: astreinte }
           annotations:
             resume: "Budget d'erreur consommé 6x trop vite sur {{ $labels.service }}"
-            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
+            runbook: https://github.com/syfFerdinand/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
 
         - alert: BudgetErreurConsommationLente
           expr: |
@@ -137,4 +137,4 @@ spec:
           labels: { severity: P2, equipe: usagers, canal: equipe }
           annotations:
             resume: "p95 de latence à {{ $value | humanizeDuration }} (référence 500 ms)"
-            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
+            runbook: https://github.com/syfFerdinand/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md

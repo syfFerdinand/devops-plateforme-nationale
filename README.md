@@ -37,7 +37,7 @@ Cible mesurée à 3 mois : **1 MEP par semaine minimum**, **taux d'échec de cha
 | Chemin | Contenu |
 |---|---|
 | `docs/00-diagnostic-et-resolutions.md` | Diagnostic, causes racines, décisions de correction |
-| `docs/01-architecture-cible.md` | **Tâche 1** — architecture cible et organisation de la chaîne |
+| `docs/01-architecture-cible.md` | **Tâche 1** — architecture cible et syfFerdinand de la chaîne |
 | `docs/02-pipeline-cicd.md` | **Tâche 1** — étapes détaillées du pipeline et contrôles qualité |
 | `docs/03-environnements-et-configuration.md` | **Tâche 1** — gestion des environnements, suppression des écarts |
 | `docs/04-securite-et-secrets.md` | **Tâche 1** — sécurité applicative, chaîne d'approvisionnement, secrets |
@@ -79,6 +79,6 @@ Faute d'accès au système réel, les hypothèses suivantes sont posées et devr
 ```bash
 git init && git add . && git commit -m "feat: chaîne CI/CD cible et plan de transformation DevOps"
 git branch -M main
-git remote add origin git@github.com:<organisation>/devops-plateforme-nationale.git
+git remote add origin git@github.com:<syfFerdinand>/devops-plateforme-nationale.git
 git push -u origin main
 ```

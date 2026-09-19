@@ -18,7 +18,7 @@ spec:
           labels: { severity: P1, canal: astreinte }
           annotations:
             resume: "Rollout {{ $labels.rollout }} dégradé en production"
-            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/rollback-production.md
+            runbook: https://github.com/syfFerdinand/platform-gitops/blob/main/docs/runbooks/rollback-production.md
 
         - alert: CanaryAbandonne
           expr: increase(rollout_events_total{reason="RolloutAborted",namespace="prod"}[10m]) > 0
@@ -29,7 +29,7 @@ spec:
               Le rollback est déjà effectué par Argo Rollouts (niveau N1).
               Ne pas redéployer : identifier la cause, puis appliquer l'étape 4 du runbook
               (git revert) pour rétablir la cohérence entre Git et le cluster.
-            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/rollback-production.md
+            runbook: https://github.com/syfFerdinand/platform-gitops/blob/main/docs/runbooks/rollback-production.md
 
         - alert: DeriveGitOps
           expr: argocd_app_info{sync_status="OutOfSync",dest_namespace="prod"} == 1
@@ -115,7 +115,7 @@ spec:
           labels: { severity: P1, canal: astreinte }
           annotations:
             resume: "Parcours usager {{ $labels.instance }} indisponible depuis 2 min"
-            runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
+            runbook: https://github.com/syfFerdinand/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
 
         - alert: CertificatTLSParcoursExpire
           expr: (probe_ssl_earliest_cert_expiry{env="prod"} - time()) / 86400 < 20

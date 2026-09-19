@@ -16,10 +16,10 @@ spec:
   targets:
     staticConfig:
       static:
-        - https://www.plateforme.gouv/
-        - https://www.plateforme.gouv/connexion
-        - https://api.plateforme.gouv/healthz
-        - https://api.plateforme.gouv/api/v1/services
+        - https://www.service-public.gouv.tg/
+        - https://www.service-public.gouv.tg/connexion
+        - https://api.service-public.gouv.tg/healthz
+        - https://api.service-public.gouv.tg/api/v1/services
       labels:
         env: prod
         criticite: haute

@@ -15,7 +15,7 @@ spec:
       helm:
         valueFiles: [$config/gitops/observabilite/valeurs-kube-prometheus-stack.yaml]
     # 2. Notre configuration : règles, routage, tableaux de bord.
-    - repoURL: https://github.com/organisation/platform-gitops.git
+    - repoURL: https://github.com/syfFerdinand/platform-gitops.git
       targetRevision: main
       path: gitops/observabilite
       ref: config

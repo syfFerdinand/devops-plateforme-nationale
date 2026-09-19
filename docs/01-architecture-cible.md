@@ -1,4 +1,4 @@
-# 01 — Tâche 1 : organisation et architecture cible de la chaîne CI/CD
+# 01 — Tâche 1 : syfFerdinand et architecture cible de la chaîne CI/CD
 
 ## 1. Principes directeurs
 
@@ -112,7 +112,7 @@ La promotion ne recompile rien. Elle consiste à modifier une seule ligne dans l
 ```yaml
 # gitops/overlays/prod/kustomization.yaml
 images:
-  - name: registry.plateforme.gouv/app-usagers
+  - name: registry.service-public.gouv.tg/app-usagers
     digest: sha256:8f3c...   # ← digest validé en recette, identique bit pour bit
 ```
 

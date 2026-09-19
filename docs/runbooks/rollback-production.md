@@ -36,7 +36,7 @@ kubectl get pods -n prod -l app=<service> -o wide
 
 **Étape 3 — Vérifier (2 min)**
 ```bash
-./tests/smoke/run.sh https://<service>.plateforme.gouv
+./tests/smoke/run.sh https://<service>.service-public.gouv.tg
 # Contrôler le tableau de bord SLO : taux d'erreur et latence doivent revenir à la référence
 ```
 

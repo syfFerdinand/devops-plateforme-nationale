@@ -42,7 +42,7 @@ jobs:
 
       - name: Contrôles préalables à la promotion
         run: |
-          IMG="registry.plateforme.gouv/${{ inputs.service }}@${{ steps.src.outputs.digest }}"
+          IMG="registry.service-public.gouv.tg/${{ inputs.service }}@${{ steps.src.outputs.digest }}"
           # 1. La signature doit être valide et émise par notre chaîne CI
           cosign verify "$IMG" \
             --certificate-identity-regexp "https://github.com/${{ github.repository_owner }}/.*" \

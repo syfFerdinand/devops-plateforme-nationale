@@ -45,8 +45,8 @@ tests:
               resume: "Budget d'erreur consommé 14x trop vite sur app-usagers"
               description: >-
                 Au rythme actuel, le budget d'erreur mensuel sera épuisé en moins de 2 jours. Vérifier d'abord s'il existe une annotation de déploiement récente.
-              runbook: https://github.com/organisation/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
-              dashboard: https://grafana.plateforme.gouv/d/slo-usagers
+              runbook: https://github.com/syfFerdinand/platform-gitops/blob/main/docs/runbooks/incident-post-deploiement.md
+              dashboard: https://grafana.service-public.gouv.tg/d/slo-usagers
 
   # ------------------------------------------------------------------------
   - name: "Pic isolé d'erreurs : ne doit PAS réveiller l'astreinte"
