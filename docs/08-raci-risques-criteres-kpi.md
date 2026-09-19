@@ -10,8 +10,8 @@
 | Équipe plateforme / SRE | 2–3 | Construction de la chaîne, GitOps, observabilité, secrets, exploitation |
 | Équipes de développement | n squads | Tests, qualité, feature flags, migrations, correction des défauts |
 | RSSI / sécurité | 1 | Exigences de sécurité, validation des politiques, homologation, revue des exceptions |
-| Product Owner / métier | 1 par service | SLO, parcours critiques, recette métier, fenêtres de gel |
-| DPO | 1 | Validation de l'anonymisation des données de recette |
+| Product Owner / métier | 1 par service | SLO, parcours critiques, stage métier, fenêtres de gel |
+| DPO | 1 | Validation de l'anonymisation des données de stage |
 | Exploitation / astreinte | — | Runbooks, astreinte, incidents |
 | Direction / sponsor | 1 | Mandat, budget, arbitrage fonctionnalités vs fiabilité |
 
@@ -31,12 +31,12 @@ R = Réalise · A = Approuve (décide) · C = Consulté · I = Informé
 | Définition des SLO | C | R | C | I | **A** | I |
 | Approbation d'une MEP de production | C | C | R | I | **A** | I |
 | Décision de rollback | **A** | R | C | I | I | I |
-| Anonymisation des données de recette | C | R | I | C | I | I |
+| Anonymisation des données de stage | C | R | I | C | I | I |
 | Post-mortem | **A/R** | C | C | C | I | I |
 | Arbitrage fonctionnalités / fiabilité | C | I | I | C | C | **A** |
 | Gel de production | C | I | I | C | R | **A** |
 
-*Le DPO est A sur l'anonymisation des données de recette.*
+*Le DPO est A sur l'anonymisation des données de stage.*
 
 ### 1.3 Rituels
 
@@ -56,10 +56,10 @@ R = Réalise · A = Approuve (décide) · C = Consulté · I = Informé
 | # | Risque | P | I | Criticité | Mesures de maîtrise | Porteur |
 |---|---|:--:|:--:|:--:|---|---|
 | R1 | **Absence de tests automatisés existants** : impossible d'activer des gates crédibles en M2 | Élevée | Fort | 🔴 | Priorisation sur les parcours usagers critiques uniquement ; couverture exigée sur le diff, pas sur le legacy ; budget explicite de 20 % de capacité dev en M2 | Chef DevOps |
-| R2 | **Résistance au changement** (perte d'accès prod, contrôles bloquants) | Élevée | Fort | 🔴 | Contrôles en avertissement en M1 ; pilote volontaire ; ateliers ; démonstration des gains ; maintien d'une procédure de bris de glace | Chef DevOps |
+| R2 | **Résistance au changement** (perte d'accès main, contrôles bloquants) | Élevée | Fort | 🔴 | Contrôles en avertissement en M1 ; pilote volontaire ; ateliers ; démonstration des gains ; maintien d'une procédure de bris de glace | Chef DevOps |
 | R3 | **Migrations de base non réversibles** bloquant le rollback | Moyenne | Fort | 🔴 | Politique expand/contract obligatoire, contrôle CI des migrations destructives, sauvegarde avant migration | Dev + plateforme |
 | R4 | **Indisponibilité des équipes** (charge métier, congés, run concurrent) | Élevée | Moyen | 🟠 | Engagement de capacité formalisé dans le mandat ; jalons mensuels ; pilote restreint | Direction |
-| R5 | **Faux rollbacks** dus à des SLI mal calibrés | Moyenne | Moyen | 🟠 | Calibrage en recette pendant 2 semaines en mode observation avant activation ; seuils relatifs à une référence glissante | Plateforme |
+| R5 | **Faux rollbacks** dus à des SLI mal calibrés | Moyenne | Moyen | 🟠 | Calibrage en stage pendant 2 semaines en mode observation avant activation ; seuils relatifs à une référence glissante | Plateforme |
 | R6 | **Fuite de secrets pendant la migration vers Vault** | Moyenne | Fort | 🔴 | Rotation systématique de tout secret migré ; scan de l'historique Git ; révocation des anciens identifiants | RSSI |
 | R7 | **Dépendance à une seule personne** sur la chaîne (bus factor) | Moyenne | Fort | 🟠 | Binômage obligatoire, documentation dans le dépôt, runbooks exécutables, revue croisée | Chef DevOps |
 | R8 | **Incident majeur pendant la transformation** | Moyenne | Fort | 🟠 | Ancienne procédure de MEP maintenue opérationnelle jusqu'à la fin du M2 ; bascule application par application | Plateforme |
@@ -83,17 +83,17 @@ R = Réalise · A = Approuve (décide) · C = Consulté · I = Informé
 | 3 | Aucune vulnérabilité `CRITICAL`/`HIGH` non dérogée, aucun secret détecté |
 | 4 | Image signée, SBOM et attestation de provenance présents, référencée par digest |
 | 5 | Politiques Kyverno respectées |
-| 6 | Le digest promu est **exactement** celui validé en recette |
+| 6 | Le digest promu est **exactement** celui validé en stage |
 | 7 | Tests de performance dans les seuils (p95, taux d'erreur) |
 | 8 | Contrôle de parité d'environnements sans écart non déclaré |
 | 9 | Migration de base compatible N-1 |
-| 10 | Tests de fumée réussis en recette |
+| 10 | Tests de fumée réussis en stage |
 
 ### 3.2 Critères syfFerdinandnels (bloquants, vérifiés par l'humain)
 
 | # | Critère |
 |---|---|
-| 11 | Recette métier validée par le PO sur les parcours concernés |
+| 11 | Stage métier validée par le PO sur les parcours concernés |
 | 12 | PR de promotion approuvée par 2 personnes, dont une n'ayant pas écrit le code |
 | 13 | MEP dans la fenêtre, hors période de gel |
 | 14 | Notes de version générées et communiquées au métier |
@@ -118,8 +118,8 @@ R = Réalise · A = Approuve (décide) · C = Consulté · I = Informé
 
 | Indicateur | Référence estimée | Cible M1 | Cible M2 | Cible M3 | Source |
 |---|---|---|---|---|---|
-| **Fréquence de déploiement** (prod) | < 1 / mois | 1 / 2 semaines | 1 / semaine | **>= 1 / semaine stable** | Dépôt GitOps |
-| **Délai de traversée** (commit → prod) | > 2 semaines | 1 semaine | 3 jours | **< 2 jours** | CI + GitOps |
+| **Fréquence de déploiement** (main) | < 1 / mois | 1 / 2 semaines | 1 / semaine | **>= 1 / semaine stable** | Dépôt GitOps |
+| **Délai de traversée** (commit → main) | > 2 semaines | 1 semaine | 3 jours | **< 2 jours** | CI + GitOps |
 | **Taux d'échec de changement** | ~50 % (2 rollbacks / ~4 MEP) | < 40 % | < 20 % | **< 10 %** | Incidents / MEP |
 | **MTTR** | Plusieurs heures | < 2 h | < 1 h | **< 30 min** | Outil d'incident |
 

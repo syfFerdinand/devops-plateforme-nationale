@@ -12,12 +12,12 @@ on:
         description: Environnement source (le digest en est extrait)
         required: true
         type: choice
-        options: [dev, recette]
+        options: [dev, stage]
       target:
         description: Environnement cible
         required: true
         type: choice
-        options: [recette, prod]
+        options: [stage, main]
 
 permissions:
   contents: write
@@ -61,7 +61,7 @@ jobs:
           DIGEST: ${{ steps.src.outputs.digest }}
 
       - name: Contrôle de parité des environnements
-        run: ./scripts/check-env-parity.sh recette prod
+        run: ./scripts/check-env-parity.sh stage main
 
       - name: Ouvrir la Pull Request de promotion
         uses: peter-evans/create-pull-request@v6
@@ -84,7 +84,7 @@ jobs:
             - [x] Parité d'environnements conforme
 
             ### À confirmer avant fusion (voir docs/08 §3.2)
-            - [ ] Recette métier validée par le PO
+            - [ ] Stage métier validée par le PO
             - [ ] 2 approbations dont une personne n'ayant pas écrit le code
             - [ ] Fenêtre de MEP ouverte, hors période de gel
             - [ ] Budget d'erreur non épuisé

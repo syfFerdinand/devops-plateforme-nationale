@@ -17,7 +17,7 @@ Les commits `feat` et `fix` alimentent la génération automatique des notes de 
 | Règle | Valeur |
 |---|---|
 | Push direct | Interdit |
-| Revues requises | 1 minimum, 2 pour `gitops/overlays/prod` (CODEOWNERS) |
+| Revues requises | 1 minimum, 2 pour `gitops/overlays/main` (CODEOWNERS) |
 | Checks obligatoires | `lint`, `test-unit`, `sast`, `sca`, `build-image`, `policy-check` |
 | Historique | Linéaire, signature des commits requise |
 | Secrets détectés | Blocage immédiat, rotation obligatoire du secret exposé |

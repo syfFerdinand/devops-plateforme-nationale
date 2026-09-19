@@ -7,24 +7,24 @@ aide: ## Afficher cette aide
 valider: manifestes politiques parite ## Tous les contrôles locaux avant de pousser
 
 manifestes: ## Valider les manifestes contre le schéma Kubernetes
-	@for env in dev recette prod; do \
+	@for env in dev stage main; do \
 	  echo "→ $$env"; \
 	  kustomize build gitops/overlays/$$env | kubeconform -strict -summary -; \
 	done
 
 politiques: ## Vérifier les manifestes de production contre les politiques
-	@kustomize build gitops/overlays/prod | conftest test --policy policies/ -
+	@kustomize build gitops/overlays/main | conftest test --policy policies/ -
 
-parite: ## Contrôler la parité recette / production
-	@./scripts/check-env-parity.sh recette prod
+parite: ## Contrôler la parité stage / production
+	@./scripts/check-env-parity.sh stage main
 
 exceptions: ## Détecter les dérogations de sécurité expirées
 	@./scripts/check-exceptions.sh
 
-rendre: ## Afficher les manifestes rendus (ENV=prod make rendre)
+rendre: ## Afficher les manifestes rendus (ENV=main make rendre)
 	@kustomize build gitops/overlays/$${ENV:-dev}
 
 rollback: ## Rollback assisté (SERVICE=app-usagers make rollback)
-	@./scripts/rollback.sh $${SERVICE:?SERVICE requis} $${NS:-prod}
+	@./scripts/rollback.sh $${SERVICE:?SERVICE requis} $${NS:-main}
 
 .PHONY: aide valider manifestes politiques parite exceptions rendre rollback

@@ -28,13 +28,13 @@ la désactiver prend quelques secondes et évite un rollback complet.
 
 ```bash
 # Quelle version tourne réellement ?
-kubectl get rollout <service> -n prod -o jsonpath='{.spec.template.spec.containers[0].image}'
+kubectl get rollout <service> -n main -o jsonpath='{.spec.template.spec.containers[0].image}'
 
 # Événements récents
-kubectl get events -n prod --sort-by=.lastTimestamp | tail -30
+kubectl get events -n main --sort-by=.lastTimestamp | tail -30
 
 # Logs d'erreur corrélés
-# Loki : {app="<service>", env="prod"} |= "level=error" | json
+# Loki : {app="<service>", env="main"} |= "level=error" | json
 # Tempo : partir d'un trace_id relevé dans un log d'erreur
 ```
 

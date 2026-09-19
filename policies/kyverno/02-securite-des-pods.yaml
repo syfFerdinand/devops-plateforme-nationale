@@ -31,7 +31,7 @@ spec:
                   limits: { memory: "?*" }
 
     - name: probes-obligatoires
-      match: { any: [{ resources: { kinds: [Pod], namespaces: [prod, recette] } }] }
+      match: { any: [{ resources: { kinds: [Pod], namespaces: [main, stage] } }] }
       validate:
         message: "readinessProbe et livenessProbe sont obligatoires : sans elles le déploiement progressif ne peut rien détecter."
         pattern:

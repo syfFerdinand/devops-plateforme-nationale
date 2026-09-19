@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: recette
+namespace: stage
 resources: [../../base]
-# Recette iso-prod en topologie. Seuls le volume et les raccordements diffèrent.
+# Stage iso-main en topologie. Seuls le volume et les raccordements diffèrent.
 images:
   - name: registry.service-public.gouv.tg/app-usagers
     digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
@@ -15,4 +15,4 @@ configMapGenerator:
   - name: app-usagers-config
     literals:
       - LOG_LEVEL=info
-      - API_BASE_URL=https://api.recette.service-public.gouv.tg
+      - API_BASE_URL=https://api.stage.service-public.gouv.tg

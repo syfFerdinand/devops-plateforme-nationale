@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: prod
+namespace: main
 resources: [../../base]
-# Le digest ci-dessous est EXACTEMENT celui validé en recette.
+# Le digest ci-dessous est EXACTEMENT celui validé en stage.
 # Il n'est modifié que par une PR de promotion approuvée par 2 personnes (CODEOWNERS).
 images:
   - name: registry.service-public.gouv.tg/app-usagers

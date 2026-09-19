@@ -1,5 +1,5 @@
 // Test de performance — seuils bloquants du pipeline (docs/02 §2).
-// Exécuté chaque nuit en recette : détecte les régressions de latence avant la production.
+// Exécuté chaque nuit en stage : détecte les régressions de latence avant la production.
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
@@ -17,7 +17,7 @@ export const options = {
   },
 };
 
-const BASE = __ENV.BASE_URL || 'https://api.recette.service-public.gouv.tg';
+const BASE = __ENV.BASE_URL || 'https://api.stage.service-public.gouv.tg';
 
 export default function () {
   // Parcours usager critique : consultation puis soumission d'une demande.

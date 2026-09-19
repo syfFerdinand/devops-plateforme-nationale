@@ -3,8 +3,8 @@
 # Échoue si un écart n'est pas déclaré dans gitops/parity-allowlist.yaml.
 set -euo pipefail
 
-SRC="${1:-recette}"
-DST="${2:-prod}"
+SRC="${1:-stage}"
+DST="${2:-main}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT

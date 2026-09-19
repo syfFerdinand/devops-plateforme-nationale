@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SERVICE="${1:?Usage: rollback.sh <service> [namespace]}"
-NS="${2:-prod}"
+NS="${2:-main}"
 DEBUT=$(date +%s)
 
 echo "═══ Rollback de $SERVICE dans $NS ═══"

@@ -13,7 +13,7 @@ Quatre incidents post-déploiement en deux mois, dont deux restaurations. Le dé
 3. **Canary avec analyse automatique (Argo Rollouts)** : exposition progressive, décision automatisée.
 
 ## Décision
-Canary en production, blue/green en recette (pour éprouver la bascule), rolling update en développement.
+Canary en production, blue/green en stage (pour éprouver la bascule), rolling update en développement.
 
 ## Conséquences
 - **Positives** : l'exposition maximale en cas de défaut tombe à 5 % des usagers ; la détection ne dépend plus

@@ -1,18 +1,18 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-usagers-prod
+  name: app-usagers-main
   namespace: argocd
   annotations:
     notifications.argoproj.io/subscribe.on-health-degraded.slack: incidents
     notifications.argoproj.io/subscribe.on-sync-failed.slack: incidents
 spec:
-  project: plateforme-prod
+  project: plateforme-main
   source:
     repoURL: https://github.com/syfFerdinand/platform-gitops.git
     targetRevision: main
-    path: gitops/overlays/prod
-  destination: { server: https://prod.k8s.service-public.gouv.tg, namespace: prod }
+    path: gitops/overlays/main
+  destination: { server: https://main.k8s.service-public.gouv.tg, namespace: main }
   syncPolicy:
     # En production : on corrige la dérive (selfHeal) mais on ne supprime jamais
     # automatiquement une ressource (prune: false). Une suppression est un acte volontaire.

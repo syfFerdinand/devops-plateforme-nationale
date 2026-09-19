@@ -27,7 +27,7 @@ feature flags généralisés, astreinte outillée. C'est la suite naturelle du p
 | Test de restauration | Exercice trimestriel de reconstruction complète d'un environnement depuis zéro | Procès-verbal daté |
 | Multi-zone | Répartition des charges de travail sur plusieurs zones de disponibilité | Perte d'une zone sans interruption |
 | Dégradation maîtrisée | Coupe-circuits, limitation de débit, mode dégradé par service | Comportement vérifié en test |
-| Chaos engineering | Injection de pannes contrôlées en recette puis en production (Litmus) | 1 expérience / mois |
+| Chaos engineering | Injection de pannes contrôlées en stage puis en production (Litmus) | 1 expérience / mois |
 
 Pour un service public, la capacité à **reconstruire la plateforme à partir de Git et des sauvegardes** est la
 garantie la plus solide. Elle se teste, elle ne se suppose pas.

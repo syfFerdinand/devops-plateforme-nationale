@@ -19,7 +19,7 @@ jobs:
         id: list
         run: |
           yq '.images[] | .name + "@" + .digest' \
-            gitops/overlays/prod/kustomization.yaml > images.txt
+            gitops/overlays/main/kustomization.yaml > images.txt
           cat images.txt
 
       - name: Scanner et ouvrir un ticket si nécessaire
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Toutes les images de production doivent être signées
         run: |
-          yq '.images[] | .name + "@" + .digest' gitops/overlays/prod/kustomization.yaml \
+          yq '.images[] | .name + "@" + .digest' gitops/overlays/main/kustomization.yaml \
           | while read -r IMG; do
               cosign verify "$IMG" \
                 --certificate-identity-regexp "https://github.com/${{ github.repository_owner }}/.*" \

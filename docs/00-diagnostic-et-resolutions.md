@@ -6,7 +6,7 @@
 |---|---|---|
 | C1 | Des interventions manuelles subsistent en mise en production | MEP non reproductible, dépendance à des personnes, pas de traçabilité |
 | C2 | 4 incidents post-déploiement en 2 mois, 2 restaurations de version | Taux d'échec de changement estimé > 25 %, confiance dégradée |
-| C3 | Écarts de configuration entre dev, recette et production | « Ça marchait en recette » : la recette ne valide plus rien |
+| C3 | Écarts de configuration entre dev, stage et production | « Ça marchait en stage » : la stage ne valide plus rien |
 | C4 | Cadence de MEP faible et irrégulière | Lots de changements volumineux, donc risque par MEP élevé |
 | C5 | Pas de retour arrière outillé | MTTR long, décision de rollback prise tardivement et à la main |
 
@@ -36,7 +36,7 @@ Boucle classique. Le seul moyen de la casser est de rendre le retour arrière **
 
 | ID | Décision | Répond à | Effet attendu |
 |---|---|---|---|
-| D1 | Artefact unique immuable, promu par **digest** (`sha256:…`) de dev à prod | C1, C3 | Ce qui est validé en recette est exactement ce qui part en prod |
+| D1 | Artefact unique immuable, promu par **digest** (`sha256:…`) de dev à prod | C1, C3 | Ce qui est validé en stage est exactement ce qui part en main |
 | D2 | **GitOps pull-based** (Argo CD), suppression des droits d'écriture humains en prod | C1, C3 | MEP reproductible, auditable, drift détecté et corrigé |
 | D3 | **Quality gates bloquants** en CI (tests, couverture, SAST, SCA, scan image, politiques) | C2 | Les défauts connus n'atteignent plus la production |
 | D4 | **Déploiement progressif canary** avec analyse automatique des SLI | C2, C5 | Exposition limitée à 5–10 % des usagers en cas de défaut |

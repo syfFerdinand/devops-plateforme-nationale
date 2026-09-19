@@ -29,9 +29,9 @@ Canal #incidents : "Rollback en cours sur <service> en production. Déclencheur 
 
 **Étape 2 — Rétablir le service (2 min)**
 ```bash
-kubectl argo rollouts undo <service> -n prod
-kubectl argo rollouts status <service> -n prod --watch
-kubectl get pods -n prod -l app=<service> -o wide
+kubectl argo rollouts undo <service> -n main
+kubectl argo rollouts status <service> -n main --watch
+kubectl get pods -n main -l app=<service> -o wide
 ```
 
 **Étape 3 — Vérifier (2 min)**
@@ -45,7 +45,7 @@ kubectl get pods -n prod -l app=<service> -o wide
 cd platform-gitops
 git revert <sha-de-la-PR-de-promotion> --no-edit
 git push origin main
-argocd app get <service>-prod   # doit repasser Synced / Healthy
+argocd app get <service>-main   # doit repasser Synced / Healthy
 ```
 > Sans cette étape, Argo CD redéploiera la version défaillante à la prochaine synchronisation.
 

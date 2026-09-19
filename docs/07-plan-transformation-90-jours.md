@@ -33,7 +33,7 @@ gantt
     section Mois 2 — Qualité et sécurité
     Quality gates bloquants                        :c1, 2026-02-09, 14d
     Tests E2E, intégration, contrat                :c2, 2026-02-09, 21d
-    Recette iso-prod + données anonymisées         :c3, 2026-02-09, 14d
+    Stage iso-prod + données anonymisées         :c3, 2026-02-09, 14d
     Promotion par digest + signature + Kyverno     :c4, 2026-02-16, 14d
     Observabilité, SLO, annotations MEP            :c5, 2026-02-23, 14d
 
@@ -56,7 +56,7 @@ On ne peut pas démontrer une amélioration sans point de départ chiffré.
 | Mesurer les 4 indicateurs DORA sur les 3 derniers mois | Référence chiffrée initiale | Chef DevOps |
 | Analyser les 4 incidents : cause, détection, délai de rétablissement | Note de causes racines | Chef DevOps + Dev |
 | Cartographier les gestes manuels d'une MEP (observation d'une MEP réelle) | Liste ordonnée des gestes à automatiser | Chef DevOps |
-| Inventaire des écarts dev/recette/prod | Tableau des divergences | Plateforme |
+| Inventaire des écarts dev/stage/prod | Tableau des divergences | Plateforme |
 | Inventaire des secrets et de leur localisation | Registre des secrets | Plateforme + RSSI |
 | Choix de l'application pilote et des parcours critiques | Décision actée | Chef DevOps + PO |
 | Validation du plan, du budget et de la politique de budget d'erreur | Mandat signé | Direction |
@@ -91,25 +91,25 @@ Aucun contrôle bloquant ce mois-ci ; on mesure, on n'empêche pas encore. C'est
 
 ## 5. Mois 2 — Qualité et sécurité : empêcher la régression d'atteindre la production
 
-**Objectif unique : rendre la recette crédible et les contrôles bloquants.**
+**Objectif unique : rendre la stage crédible et les contrôles bloquants.**
 C'est le mois qui traite directement les 4 incidents constatés.
 
 | Sem. | Chantier | Livrable vérifiable | Responsable |
 |---|---|---|---|
 | S5-S6 | Bascule des quality gates en **bloquant** (couverture diff 80 %, 0 Critical, 0 secret) | PR non conforme rejetée automatiquement | Chef DevOps |
 | S5-S7 | Tests : unitaires sur le code critique, intégration, contrat Pact, **E2E sur les parcours usagers prioritaires** | Suite E2E < 10 min, exécutée à chaque PR | Équipes dev |
-| S5-S6 | Recette iso-prod : topologie identique, données de production anonymisées, rafraîchissement hebdomadaire | Procédure d'anonymisation validée par le DPO | Plateforme + DPO |
-| S6-S7 | Promotion par digest, signature Cosign vérifiée, Kyverno en `Audit` puis `Enforce` hors prod | Image non signée refusée en recette | Plateforme + RSSI |
+| S5-S6 | Stage iso-main : topologie identique, données de production anonymisées, rafraîchissement hebdomadaire | Procédure d'anonymisation validée par le DPO | Plateforme + DPO |
+| S6-S7 | Promotion par digest, signature Cosign vérifiée, Kyverno en `Audit` puis `Enforce` hors main | Image non signée refusée en stage | Plateforme + RSSI |
 | S7-S8 | Observabilité : SLI/SLO définis avec le métier, tableaux de bord, alerting multi-fenêtre, annotations de MEP | 4 tableaux de bord en service, alertes testées | Plateforme |
 | S7-S8 | Tests de performance k6 et DAST nocturnes, seuils définis | Rapport hebdomadaire automatisé | Plateforme + dev |
 | S8 | Contrôle de parité d'environnements en CI | Écart non déclaré = échec de PR | Plateforme |
 
 **Critères de sortie du Mois 2**
-- [ ] Un défaut introduit volontairement (test de validation) est bloqué avant la recette
+- [ ] Un défaut introduit volontairement (test de validation) est bloqué avant la stage
 - [ ] Les trois environnements sont conformes au contrôle de parité
 - [ ] Les SLO sont définis, mesurés et acceptés par le métier
-- [ ] Le pilote est déployé en recette exclusivement par promotion de digest
-- [ ] Délai de traversée commit → recette < 1 h
+- [ ] Le pilote est déployé en stage exclusivement par promotion de digest
+- [ ] Délai de traversée commit → stage < 1 h
 
 ---
 
@@ -144,7 +144,7 @@ C'est le mois qui traite directement les 4 incidents constatés.
 | Mesurer avant d'agir | Sans référence chiffrée, aucune amélioration n'est démontrable à la direction |
 | GitOps avant les tests | Tant que la MEP est manuelle, améliorer les tests ne supprime pas l'aléa principal |
 | Contrôles en avertissement avant blocage | Bloquer dès le premier jour sur une base de code non préparée arrête la production de valeur et détruit l'adhésion |
-| Recette iso-prod avant le canary en production | Un canary déclenché sur des SLI mal calibrés produit de faux rollbacks et ruine la confiance |
+| Stage iso-main avant le canary en production | Un canary déclenché sur des SLI mal calibrés produit de faux rollbacks et ruine la confiance |
 | Rollback avant cadence hebdomadaire | On n'accélère pas la livraison avant d'avoir sécurisé le retour en arrière |
 | Pilote avant généralisation | Un échec sur un périmètre restreint est une leçon ; un échec généralisé est une crise |
 

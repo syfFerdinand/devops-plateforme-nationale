@@ -5,7 +5,7 @@
 | Environnement | Stratégie | Motif |
 |---|---|---|
 | Développement | Rolling update | Vitesse, coût minimal |
-| Recette | Blue/green | Valide la bascule et la procédure de retour arrière avant la production |
+| Stage | Blue/green | Valide la bascule et la procédure de retour arrière avant la production |
 | Production | **Canary avec analyse automatique** | Limite l'exposition des usagers, détecte la régression avant généralisation |
 
 ## 2. Déroulé d'un déploiement de production
@@ -39,8 +39,8 @@ le runbook : si les critères d'échec sont atteints, on revient en arrière d'a
 ### N2 en pratique
 ```bash
 # 1. Stopper l'hémorragie (immédiat, action opérationnelle tracée)
-kubectl argo rollouts undo app-usagers -n prod
-kubectl argo rollouts status app-usagers -n prod
+kubectl argo rollouts undo app-usagers -n main
+kubectl argo rollouts status app-usagers -n main
 
 # 2. Rétablir la cohérence entre Git et le cluster (obligatoire dans la foulée)
 git revert <sha-de-la-PR-de-promotion> && git push
@@ -94,6 +94,6 @@ fenêtre s'élargit puis disparaît au profit du déploiement à la demande.
 
 ## 7. Test du retour arrière
 
-Le rollback est **testé à chaque passage en recette** (la stratégie blue/green rend la bascule inverse triviale)
+Le rollback est **testé à chaque passage en stage** (la stratégie blue/green rend la bascule inverse triviale)
 et **exercé en production une fois par mois** sur un service non critique, chronométré. Un mécanisme de secours
 jamais exercé est un mécanisme dont on ignore s'il fonctionne.

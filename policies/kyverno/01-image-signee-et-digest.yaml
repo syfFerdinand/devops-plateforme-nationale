@@ -10,12 +10,12 @@ metadata:
       Toute image doit provenir du registre interne, être référencée par digest
       et porter une signature Cosign valide émise par la chaîne CI de l'syfFerdinand.
 spec:
-  validationFailureAction: Enforce      # Audit en dev/recette pendant la montée en charge
+  validationFailureAction: Enforce      # Audit en dev/stage pendant la montée en charge
   background: true
   rules:
     - name: registre-interne-uniquement
       match:
-        any: [{ resources: { kinds: [Pod], namespaces: [prod, recette] } }]
+        any: [{ resources: { kinds: [Pod], namespaces: [main, stage] } }]
       validate:
         message: "Seul le registre interne registry.service-public.gouv.tg est autorisé."
         pattern:
@@ -25,7 +25,7 @@ spec:
 
     - name: digest-obligatoire
       match:
-        any: [{ resources: { kinds: [Pod], namespaces: [prod, recette] } }]
+        any: [{ resources: { kinds: [Pod], namespaces: [main, stage] } }]
       validate:
         message: "L'image doit être référencée par digest (sha256), jamais par un tag mutable (ADR-0002)."
         pattern:
@@ -35,7 +35,7 @@ spec:
 
     - name: signature-cosign-valide
       match:
-        any: [{ resources: { kinds: [Pod], namespaces: [prod, recette] } }]
+        any: [{ resources: { kinds: [Pod], namespaces: [main, stage] } }]
       verifyImages:
         - imageReferences: ["registry.service-public.gouv.tg/*"]
           attestors:

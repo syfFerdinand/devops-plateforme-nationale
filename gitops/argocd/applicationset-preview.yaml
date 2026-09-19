@@ -18,7 +18,7 @@ spec:
         kustomize:
           namePrefix: 'pr-{{number}}-'
           images: ['registry.service-public.gouv.tg/app-usagers@{{head_sha}}']
-      destination: { server: https://horsprod.k8s.service-public.gouv.tg, namespace: 'pr-{{number}}' }
+      destination: { server: https://horsmain.k8s.service-public.gouv.tg, namespace: 'pr-{{number}}' }
       syncPolicy:
         automated: { prune: true, selfHeal: true }
         syncOptions: [CreateNamespace=true]

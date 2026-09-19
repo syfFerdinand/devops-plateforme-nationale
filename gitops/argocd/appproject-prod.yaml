@@ -1,12 +1,12 @@
 # Cloisonnement : le projet production n'autorise qu'un dépôt, un cluster et un namespace.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
-metadata: { name: plateforme-prod, namespace: argocd }
+metadata: { name: plateforme-main, namespace: argocd }
 spec:
   description: Applications de production de la plateforme nationale
   sourceRepos: ['https://github.com/syfFerdinand/platform-gitops.git']
   destinations:
-    - { server: 'https://prod.k8s.service-public.gouv.tg', namespace: 'prod' }
+    - { server: 'https://main.k8s.service-public.gouv.tg', namespace: 'main' }
   clusterResourceWhitelist: []          # aucune ressource cluster créée depuis une application
   namespaceResourceBlacklist:
     - { group: '', kind: 'ResourceQuota' }
@@ -14,11 +14,11 @@ spec:
   roles:
     - name: lecture-seule
       description: Consultation par les équipes de développement
-      policies: ['p, proj:plateforme-prod:lecture-seule, applications, get, plateforme-prod/*, allow']
+      policies: ['p, proj:plateforme-main:lecture-seule, applications, get, plateforme-main/*, allow']
       groups: ['plateforme:developpeurs']
     - name: exploitation
       description: Synchronisation et rollback pour l'astreinte
       policies:
-        - 'p, proj:plateforme-prod:exploitation, applications, sync, plateforme-prod/*, allow'
-        - 'p, proj:plateforme-prod:exploitation, applications, action/*, plateforme-prod/*, allow'
+        - 'p, proj:plateforme-main:exploitation, applications, sync, plateforme-main/*, allow'
+        - 'p, proj:plateforme-main:exploitation, applications, action/*, plateforme-main/*, allow'
       groups: ['plateforme:sre']

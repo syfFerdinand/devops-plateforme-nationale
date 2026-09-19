@@ -5,7 +5,7 @@
 | Principe | Traduction concrète |
 |---|---|
 | **Git est la source de vérité** | Code, infrastructure, configuration, politiques et état désiré des clusters sont versionnés |
-| **Artefact immuable promu, jamais reconstruit** | Une image = un digest, promue dev → recette → prod |
+| **Artefact immuable promu, jamais reconstruit** | Une image = un digest, promue dev → stage → prod |
 | **Tout changement passe par une Pull Request** | Y compris un changement de production ; pas d'action hors Git |
 | **Séparation build / deploy** | La CI produit et certifie ; le CD (Argo CD) réconcilie l'état |
 | **Sécurité intégrée au plus tôt** | Contrôles dans la PR, pas en fin de cycle |
@@ -20,7 +20,7 @@ org/
 │   └── .github/workflows/ci.yaml
 ├── platform-gitops/          # état désiré des clusters (Argo CD) — CE DÉPÔT
 │   ├── gitops/base/          # socle commun
-│   ├── gitops/overlays/      # dev | recette | prod
+│   ├── gitops/overlays/      # dev | stage | prod
 │   └── gitops/argocd/        # app-of-apps, ApplicationSet, AnalysisTemplate
 ├── platform-infra/           # Terraform / OpenTofu : cluster, réseau, registry, Vault, DNS
 ├── platform-policies/        # Kyverno / OPA, règles d'admission mutualisées
@@ -52,7 +52,7 @@ flowchart LR
         J --> K[Tests intégration + E2E<br/>+ DAST + k6]
         K --> L{{PR de promotion<br/>RECETTE}}
         L --> M[Argo CD — RECETTE<br/>sync auto]
-        M --> N[Recette métier + perf<br/>+ tests de rollback]
+        M --> N[Stage métier + perf<br/>+ tests de rollback]
         N --> O{{PR de promotion PROD<br/>2 approbations + fenêtre}}
         O --> P[Argo CD — PROD<br/>Argo Rollouts canary]
     end
@@ -91,9 +91,9 @@ flowchart LR
 
 ## 5. Topologie des environnements
 
-| | **Développement** | **Recette** | **Production** |
+| | **Développement** | **Stage** | **Production** |
 |---|---|---|---|
-| Cluster | Cluster hors-prod, namespace `dev` | Cluster hors-prod, namespace `recette` | Cluster dédié production |
+| Cluster | Cluster hors-prod, namespace `dev` | Cluster hors-prod, namespace `stage` | Cluster dédié production |
 | Déclenchement | Automatique à chaque merge sur `main` | Automatique après succès des tests dev | PR de promotion + approbation + fenêtre |
 | Stratégie | Rolling update | Blue/green | Canary avec analyse |
 | Données | Jeu de données synthétique | **Données de production anonymisées** | Données réelles |
@@ -103,7 +103,7 @@ flowchart LR
 
 **Environnements éphémères de prévisualisation** : chaque PR peut déclencher un namespace jetable
 (`pr-<numéro>`) déployé par ApplicationSet, détruit à la fermeture de la PR. Il donne aux testeurs et au métier
-un retour avant fusion, et réduit la charge sur la recette.
+un retour avant fusion, et réduit la charge sur la stage.
 
 ## 6. Modèle de promotion
 
@@ -113,7 +113,7 @@ La promotion ne recompile rien. Elle consiste à modifier une seule ligne dans l
 # gitops/overlays/prod/kustomization.yaml
 images:
   - name: registry.service-public.gouv.tg/app-usagers
-    digest: sha256:8f3c...   # ← digest validé en recette, identique bit pour bit
+    digest: sha256:8f3c...   # ← digest validé en stage, identique bit pour bit
 ```
 
 ```mermaid
@@ -124,12 +124,12 @@ sequenceDiagram
     participant ACD as Argo CD
     participant K8S as Cluster PROD
     CI->>REG: push image@sha256:8f3c + SBOM + signature
-    CI->>GIT: PR "promote app-usagers vers recette"
-    GIT->>ACD: merge → sync recette
-    Note over ACD,K8S: tests E2E, perf, sécurité, recette métier
-    CI->>GIT: PR "promote app-usagers vers prod" (même digest)
+    CI->>GIT: PR "promote app-usagers vers stage"
+    GIT->>ACD: merge → sync stage
+    Note over ACD,K8S: tests E2E, perf, sécurité, stage métier
+    CI->>GIT: PR "promote app-usagers vers main" (même digest)
     Note over GIT: 2 approbations (CODEOWNERS) + fenêtre de MEP
-    GIT->>ACD: merge → sync prod
+    GIT->>ACD: merge → sync main
     ACD->>K8S: Argo Rollouts canary 5%
     K8S-->>ACD: analyse SLI (succès/latence/erreurs)
     alt SLI conforme
@@ -143,7 +143,7 @@ sequenceDiagram
 
 | Incident type observé | Mécanisme qui l'aurait évité ou contenu |
 |---|---|
-| Régression fonctionnelle non détectée | Tests E2E bloquants en recette + canary limitant l'exposition à 5 % |
+| Régression fonctionnelle non détectée | Tests E2E bloquants en stage + canary limitant l'exposition à 5 % |
 | Configuration oubliée en production | Overlay versionné + détection de drift Argo CD + contrôle de parité en CI |
 | Dépendance vulnérable livrée | SCA + scan d'image bloquants, admission Kyverno refusant une image non signée |
 | Rollback long et hésitant | Analyse automatique déclenchant `undo` sans intervention, runbook répété mensuellement |

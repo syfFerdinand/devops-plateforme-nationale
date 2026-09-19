@@ -3,4 +3,4 @@ kind: ExternalSecret
 metadata: { name: app-usagers-secrets }
 spec:
   dataFrom:
-    - extract: { key: secret/plateforme/prod/app-usagers }
+    - extract: { key: secret/plateforme/main/app-usagers }

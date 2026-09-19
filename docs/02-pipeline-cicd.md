@@ -19,12 +19,12 @@
 | 12 | Tests E2E Playwright | après 11 | Oui | 8 min |
 | 13 | Promotion RECETTE + blue/green | auto | Oui | 3 min |
 | 14 | Tests de performance k6 + DAST ZAP | nuit | Oui (seuils) | 25 min |
-| 15 | Recette métier + test de rollback | J+1 | Oui | manuel |
+| 15 | Stage métier + test de rollback | J+1 | Oui | manuel |
 | 16 | PR de promotion PROD (2 approbations, fenêtre) | hebdomadaire | Oui | — |
 | 17 | Canary + analyse automatique | merge | Auto-rollback | 20 min |
-| 18 | Smoke tests prod + annotation Grafana + notes de version | après 17 | Non | 2 min |
+| 18 | Smoke tests main + annotation Grafana + notes de version | après 17 | Non | 2 min |
 
-**Temps de traversée visé (commit → prod)** : moins de 2 heures de temps machine, cadence de MEP hebdomadaire
+**Temps de traversée visé (commit → main)** : moins de 2 heures de temps machine, cadence de MEP hebdomadaire
 en phase 1, quotidienne à terme. **Boucle de retour au développeur : moins de 15 minutes** (étapes 1 à 7).
 
 ## 2. Contrôles qualité et seuils
@@ -42,7 +42,7 @@ en phase 1, quotidienne à terme. **Boucle de retour au développeur : moins de 
 | Tests E2E parcours critiques | Playwright | 0 échec sur les parcours usagers prioritaires | Protège le service rendu |
 | Performance | k6 | p95 < 500 ms, taux d'erreur < 1 % à 2× la charge nominale | Prévient les régressions de latence |
 | Accessibilité | axe-core / Pa11y | 0 violation `critical` RGAA | Obligation légale pour un service public |
-| DAST | OWASP ZAP baseline | 0 alerte `High` | Contrôle boîte noire avant prod |
+| DAST | OWASP ZAP baseline | 0 alerte `High` | Contrôle boîte noire avant main |
 
 ### Gestion des exceptions
 Toute dérogation à un seuil bloquant est explicite, datée, justifiée et limitée dans le temps

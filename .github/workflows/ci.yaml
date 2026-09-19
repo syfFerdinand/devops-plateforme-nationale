@@ -37,7 +37,7 @@ jobs:
           kustomize build gitops/overlays/dev | kubeconform -strict -summary -
       - name: Politiques (Conftest)
         run: |
-          kustomize build gitops/overlays/prod | conftest test --policy policies/ -
+          kustomize build gitops/overlays/main | conftest test --policy policies/ -
 
   # ---------------------------------------------------------------- 2-3. Tests
   test-unit:

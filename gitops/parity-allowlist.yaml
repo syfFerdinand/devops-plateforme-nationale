@@ -1,11 +1,11 @@
-# Écarts AUTORISÉS entre recette et production (docs/03 §3).
+# Écarts AUTORISÉS entre stage et production (docs/03 §3).
 # Toute différence hors de cette liste fait échouer la PR de promotion.
 # Chaque entrée est datée et justifiée ; une entrée sans justification est retirée en revue mensuelle.
 allowed_differences:
   - path: metadata.namespace
     raison: "Isolation des environnements"
   - path: spec.replicas
-    raison: "Dimensionnement : ratio prod/recette = 3"
+    raison: "Dimensionnement : ratio main/stage = 3"
   - path: spec.template.spec.containers[*].resources
     raison: "Dimensionnement nominal en production"
   - path: spec.minReplicas
@@ -19,4 +19,4 @@ allowed_differences:
   - path: spec.dataFrom[*].extract.key
     raison: "Cloisonnement des chemins Vault par environnement"
   - path: spec.strategy
-    raison: "Blue/green en recette, canary en production (ADR-0003)"
+    raison: "Blue/green en stage, canary en production (ADR-0003)"

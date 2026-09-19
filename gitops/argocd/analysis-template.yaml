@@ -60,4 +60,4 @@ spec:
                 containers:
                   - name: smoke
                     image: registry.service-public.gouv.tg/outils/smoke-tests:1.4.0
-                    args: ["http://{{args.service-name}}-canary.prod.svc"]
+                    args: ["http://{{args.service-name}}-canary.main.svc"]

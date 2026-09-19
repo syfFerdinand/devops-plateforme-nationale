@@ -7,7 +7,7 @@
 - [ ] Le comité de MEP (20 min) valide le contenu et les risques
 - [ ] Notes de version générées automatiquement à partir des commits, relues par le PO
 - [ ] Tous les critères automatiques sont au vert (voir `docs/08`, §3.1)
-- [ ] Recette métier validée par le PO
+- [ ] Stage métier validée par le PO
 - [ ] Vérification du budget d'erreur : s'il est épuisé, la MEP est reportée sauf correctif de fiabilité
 - [ ] Absence de gel de production en cours
 - [ ] Migration de base présente ? Vérifier la compatibilité N-1 et créer le point de restauration
@@ -21,7 +21,7 @@
 
 ## Jour J — 10 h 00, exécution
 
-1. Créer ou approuver la PR de promotion vers `gitops/overlays/prod` (digest validé en recette).
+1. Créer ou approuver la PR de promotion vers `gitops/overlays/main` (digest validé en stage).
 2. Obtenir les 2 approbations (dont une personne n'ayant pas écrit le code).
 3. Fusionner. Argo CD synchronise et Argo Rollouts démarre le canary.
 4. **Observer** les paliers 5 % → 25 % → 50 % → 100 % (environ 20 minutes).

@@ -21,7 +21,7 @@ flowchart TB
 
 ### Étage code
 - Commits signés (GPG ou Sigstore), historique linéaire, interdiction de `force-push` sur `main`.
-- `CODEOWNERS` : le dossier `gitops/overlays/prod` et les politiques exigent l'approbation de l'équipe plateforme et du RSSI.
+- `CODEOWNERS` : le dossier `gitops/overlays/main` et les politiques exigent l'approbation de l'équipe plateforme et du RSSI.
 - Analyse SAST sur le diff pour garder un temps de retour court, analyse complète chaque nuit.
 
 ### Étage artefact
@@ -39,7 +39,7 @@ Règles bloquantes en production :
 5. `livenessProbe` et `readinessProbe` définies.
 6. NetworkPolicy par défaut de type « deny all » dans chaque namespace.
 
-Mode `Audit` en dev et recette pendant la période de montée en charge, puis `Enforce` partout.
+Mode `Audit` en dev et stage pendant la période de montée en charge, puis `Enforce` partout.
 
 ### Étage runtime
 - Pod Security Standard `restricted`, mTLS entre services (maillage ou ingress interne).
@@ -67,7 +67,7 @@ flowchart LR
 
 | Règle | Mise en œuvre |
 |---|---|
-| Cloisonnement par environnement | Chemins Vault `secret/plateforme/{dev,recette,prod}/…`, politiques distinctes, aucun accès croisé |
+| Cloisonnement par environnement | Chemins Vault `secret/plateforme/{dev,stage,main}/…`, politiques distinctes, aucun accès croisé |
 | Moindre privilège | Chaque application lit uniquement son propre chemin |
 | Aucun secret longue durée dans la CI | Authentification OIDC, jetons de 15 minutes |
 | Rotation | Automatique : identifiants de base de données dynamiques (moteur database de Vault), certificats par cert-manager, secrets applicatifs tous les 90 jours |

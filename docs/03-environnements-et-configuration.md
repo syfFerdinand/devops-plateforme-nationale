@@ -2,7 +2,7 @@
 
 ## 1. Le problème à traiter
 
-Les écarts constatés entre dev, recette et production ont trois origines : la **duplication** des fichiers de
+Les écarts constatés entre dev, stage et production ont trois origines : la **duplication** des fichiers de
 configuration, les **modifications appliquées directement** sur un cluster sans retour dans Git, et la
 **reconstruction d'artefacts** par environnement. Les trois sont traitées structurellement.
 
@@ -14,15 +14,15 @@ gitops/
 │   └── kustomization.yaml
 └── overlays/
     ├── dev/                    # ce qui DOIT différer, et rien d'autre
-    ├── recette/
-    └── prod/
+    ├── stage/
+    └── main/
 ```
 
 Règle : **un overlay ne contient que des différences justifiées**. Trois catégories seulement sont tolérées :
 
 | Catégorie | Exemples | Contrôle |
 |---|---|---|
-| Dimensionnement | répliques, CPU/mémoire, bornes HPA | Ratio prod/recette documenté |
+| Dimensionnement | répliques, CPU/mémoire, bornes HPA | Ratio main/stage documenté |
 | Raccordement | URL, noms DNS, endpoints des services tiers | Issu de la même variable d'environnement |
 | Sensibilité | référence au secret Vault, niveau de log | Jamais la valeur, seulement la référence |
 
@@ -35,12 +35,12 @@ Un job de CI (`scripts/check-env-parity.sh`) rend les overlays, normalise les ch
 compare les manifestes. Toute différence non déclarée dans `gitops/parity-allowlist.yaml` fait échouer la PR.
 
 ```
-kustomize build overlays/recette | normalise → A
-kustomize build overlays/prod    | normalise → B
+kustomize build overlays/stage | normalise → A
+kustomize build overlays/main    | normalise → B
 diff A B  ⟶  différences ⊆ allowlist ?  sinon : échec
 ```
 
-Effet : la question « pourquoi ça marche en recette et pas en prod ? » devient impossible à laisser sans réponse,
+Effet : la question « pourquoi ça marche en stage et pas en main ? » devient impossible à laisser sans réponse,
 car chaque écart est déclaré, revu et daté.
 
 ## 4. Détection et correction du drift
@@ -49,7 +49,7 @@ Argo CD compare en continu l'état du cluster à l'état Git.
 
 | Environnement | Politique |
 |---|---|
-| dev, recette | `automated: { prune: true, selfHeal: true }` — correction immédiate |
+| dev, stage | `automated: { prune: true, selfHeal: true }` — correction immédiate |
 | production | `selfHeal: true`, `prune: false`, alerte `OutOfSync` en moins de 5 minutes |
 
 Une modification manuelle en production est donc soit annulée automatiquement, soit signalée. Les accès
@@ -68,9 +68,9 @@ journalisation, déclaration d'incident obligatoire) reste disponible pour les c
 Le suffixe de hash des ConfigMaps garantit qu'un changement de configuration provoque un vrai déploiement
 versionné, donc **réversible par rollback** comme n'importe quel changement de code.
 
-## 6. Données de recette
+## 6. Données de stage
 
-Pour que la recette valide réellement la production :
+Pour que la stage valide réellement la production :
 - Rafraîchissement hebdomadaire à partir d'un export de production **anonymisé/pseudonymisé** (conformité RGPD,
   minimisation, procédure validée par le DPO).
 - Volumétrie représentative sur les tables critiques, sinon les tests de performance n'ont pas de valeur.
