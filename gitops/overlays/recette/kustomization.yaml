@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: recette
+resources: [../../base]
+# Recette iso-prod en topologie. Seuls le volume et les raccordements diffèrent.
+images:
+  - name: registry.service-public.gouv.tg/app-usagers
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+replicas:
+  - { name: app-usagers, count: 2 }
+patches:
+  - path: patch-env.yaml
+  - path: patch-bluegreen.yaml              # blue/green : éprouve la bascule ET le retour arrière
+configMapGenerator:
+  - name: app-usagers-config
+    literals:
+      - LOG_LEVEL=info
+      - API_BASE_URL=https://api.recette.service-public.gouv.tg

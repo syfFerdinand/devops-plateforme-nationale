@@ -1,0 +1,29 @@
+# Politique par défaut : tout est refusé, puis on ouvre explicitement.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-usagers-allow
+spec:
+  podSelector:
+    matchLabels: { app: app-usagers }
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: { matchLabels: { name: ingress-nginx } }
+        - namespaceSelector: { matchLabels: { name: monitoring } }
+      ports:
+        - { protocol: TCP, port: 8080 }
+        - { protocol: TCP, port: 9090 }
+  egress:
+    - to: [{ namespaceSelector: { matchLabels: { name: kube-system } } }]
+      ports: [{ protocol: UDP, port: 53 }]
+    - to: [{ podSelector: { matchLabels: { app: postgresql } } }]
+      ports: [{ protocol: TCP, port: 5432 }]

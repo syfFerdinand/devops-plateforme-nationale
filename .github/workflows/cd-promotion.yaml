@@ -1,0 +1,91 @@
+# CD — Promotion d'un digest validé vers l'environnement suivant.
+# Aucune reconstruction : on déplace une référence immuable (voir ADR-0002).
+name: CD · Promotion d'environnement
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Service à promouvoir
+        required: true
+      source:
+        description: Environnement source (le digest en est extrait)
+        required: true
+        type: choice
+        options: [dev, recette]
+      target:
+        description: Environnement cible
+        required: true
+        type: choice
+        options: [recette, prod]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  promote:
+    name: Promotion ${{ inputs.source }} → ${{ inputs.target }}
+    runs-on: [self-hosted, linux, ephemeral]
+    environment: ${{ inputs.target }}    # approbations et fenêtre gérées par l'environnement GitHub
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extraire le digest validé dans l'environnement source
+        id: src
+        run: |
+          DIGEST=$(yq '.images[] | select(.name | test(env(SERVICE))) | .digest' \
+            "gitops/overlays/${{ inputs.source }}/kustomization.yaml")
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+        env:
+          SERVICE: ${{ inputs.service }}
+
+      - name: Contrôles préalables à la promotion
+        run: |
+          IMG="registry.service-public.gouv.tg/${{ inputs.service }}@${{ steps.src.outputs.digest }}"
+          # 1. La signature doit être valide et émise par notre chaîne CI
+          cosign verify "$IMG" \
+            --certificate-identity-regexp "https://github.com/${{ github.repository_owner }}/.*" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          # 2. Aucune vulnérabilité critique connue à cet instant
+          trivy image "$IMG" --severity CRITICAL --ignore-unfixed --exit-code 1
+          # 3. L'image doit exister dans le registre interne
+          crane digest "$IMG" > /dev/null
+
+      - name: Mettre à jour l'overlay cible
+        run: |
+          yq -i '(.images[] | select(.name | test(env(SERVICE))) | .digest) = env(DIGEST)' \
+            "gitops/overlays/${{ inputs.target }}/kustomization.yaml"
+        env:
+          SERVICE: ${{ inputs.service }}
+          DIGEST: ${{ steps.src.outputs.digest }}
+
+      - name: Contrôle de parité des environnements
+        run: ./scripts/check-env-parity.sh recette prod
+
+      - name: Ouvrir la Pull Request de promotion
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: promote/${{ inputs.service }}-${{ inputs.target }}-${{ github.run_id }}
+          title: "promote(${{ inputs.target }}): ${{ inputs.service }} ${{ steps.src.outputs.digest }}"
+          labels: promotion,${{ inputs.target }}
+          body: |
+            ## Promotion ${{ inputs.source }} → ${{ inputs.target }}
+
+            | Élément | Valeur |
+            |---|---|
+            | Service | `${{ inputs.service }}` |
+            | Digest | `${{ steps.src.outputs.digest }}` |
+            | Origine | validé en `${{ inputs.source }}` |
+
+            ### Contrôles automatiques
+            - [x] Signature Cosign vérifiée
+            - [x] Aucune vulnérabilité CRITICAL
+            - [x] Parité d'environnements conforme
+
+            ### À confirmer avant fusion (voir docs/08 §3.2)
+            - [ ] Recette métier validée par le PO
+            - [ ] 2 approbations dont une personne n'ayant pas écrit le code
+            - [ ] Fenêtre de MEP ouverte, hors période de gel
+            - [ ] Budget d'erreur non épuisé
+            - [ ] Migration de base compatible N-1

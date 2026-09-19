@@ -1,0 +1,77 @@
+# Argo Rollouts remplace le Deployment : il apporte le canary et le rollback automatique.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: app-usagers
+spec:
+  replicas: 3
+  revisionHistoryLimit: 10          # conserve 10 versions pour un « undo » instantané
+  selector:
+    matchLabels: { app: app-usagers }
+  strategy:
+    canary:
+      canaryService: app-usagers-canary
+      stableService: app-usagers
+      analysis:
+        templates:
+          - templateName: analyse-succes-latence
+        startingStep: 1             # analyse dès le premier palier de trafic
+        args:
+          - name: service-name
+            value: app-usagers
+      steps:
+        - setWeight: 5
+        - pause: { duration: 5m }
+        - setWeight: 25
+        - pause: { duration: 5m }
+        - setWeight: 50
+        - pause: { duration: 5m }
+        - setWeight: 100
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: app
+          # La référence réelle est injectée par overlay sous forme de digest (ADR-0002).
+          image: registry.service-public.gouv.tg/app-usagers
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: metrics, containerPort: 9090 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          env:
+            - name: APP_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: "metadata.labels['app.kubernetes.io/version']"
+          envFrom:
+            - secretRef: { name: app-usagers-secrets }   # alimenté par Vault via ESO
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:                                # conditionne la réception du trafic
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:                                 # conditionne le redémarrage
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec: { command: ["sh", "-c", "sleep 10"] }  # drainage des connexions en cours
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { memory: 512Mi }                    # pas de limite CPU : évite le throttling

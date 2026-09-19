@@ -1,0 +1,19 @@
+# Dimensionnement nominal. Ratio documenté par rapport à la recette : x3 sur les requests.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata: { name: app-usagers }
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            requests: { cpu: 300m, memory: 512Mi }
+            limits:   { memory: 1Gi }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: app-usagers }
+spec:
+  minReplicas: 6
+  maxReplicas: 40

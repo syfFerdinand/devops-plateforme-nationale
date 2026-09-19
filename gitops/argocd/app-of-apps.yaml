@@ -1,0 +1,16 @@
+# Point d'entrée unique : Argo CD gère ses propres Applications depuis Git.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: plateforme-root
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: plateforme
+  source:
+    repoURL: https://github.com/syfFerdinand/platform-gitops.git
+    targetRevision: main
+    path: gitops/argocd/applications
+  destination: { server: https://kubernetes.default.svc, namespace: argocd }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }

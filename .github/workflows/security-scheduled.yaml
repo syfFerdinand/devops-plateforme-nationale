@@ -1,0 +1,70 @@
+# Re-scan quotidien des images actuellement déployées.
+# Une CVE publiée après le build doit être détectée sans attendre la prochaine MEP.
+name: Sécurité · Contrôle quotidien
+
+on:
+  schedule: [{ cron: '0 5 * * *' }]
+  workflow_dispatch:
+
+permissions: { contents: read, issues: write, security-events: write }
+
+jobs:
+  rescan-deployed:
+    name: Re-scan des images en production
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lister les digests réellement déployés
+        id: list
+        run: |
+          yq '.images[] | .name + "@" + .digest' \
+            gitops/overlays/prod/kustomization.yaml > images.txt
+          cat images.txt
+
+      - name: Scanner et ouvrir un ticket si nécessaire
+        run: |
+          FAIL=0
+          while read -r IMG; do
+            if ! trivy image "$IMG" --severity CRITICAL --ignore-unfixed --exit-code 1 \
+                 --format json -o "scan-$(echo "$IMG" | md5sum | cut -c1-8).json"; then
+              echo "::error::CVE CRITICAL détectée sur $IMG (délai de correction : 48 h)"
+              FAIL=1
+            fi
+          done < images.txt
+          exit $FAIL
+
+      - name: Ouvrir un ticket de sécurité
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: `[SEC] CVE CRITICAL sur une image en production — ${new Date().toISOString().slice(0,10)}`,
+              labels: ['securite','P2','production'],
+              body: 'Détection au re-scan quotidien. Délai de correction : 48 h (docs/04 §4).'
+            })
+
+  verify-supply-chain:
+    name: Vérification de la chaîne d'approvisionnement
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toutes les images de production doivent être signées
+        run: |
+          yq '.images[] | .name + "@" + .digest' gitops/overlays/prod/kustomization.yaml \
+          | while read -r IMG; do
+              cosign verify "$IMG" \
+                --certificate-identity-regexp "https://github.com/${{ github.repository_owner }}/.*" \
+                --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              || { echo "::error::Image non signée en production : $IMG"; exit 1; }
+            done
+
+  check-expiring-exceptions:
+    name: Exceptions de sécurité expirées
+    runs-on: [self-hosted, linux, ephemeral]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Une dérogation expirée doit refaire échouer le pipeline
+        run: ./scripts/check-exceptions.sh

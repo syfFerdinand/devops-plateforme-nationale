@@ -1,0 +1,20 @@
+title = "Configuration Gitleaks — plateforme nationale"
+[extend]
+useDefault = true
+
+[[rules]]
+id = "jeton-interne-plateforme"
+description = "Jeton d'API interne de la plateforme"
+regex = '''(?i)(plateforme|pltf)[_-]?(token|key|secret)['"\s:=]+[0-9a-zA-Z\-_]{24,}'''
+tags = ["secret", "interne"]
+
+[allowlist]
+description = "Faux positifs connus, revus mensuellement"
+paths = [
+  '''docs/.*\.md''',
+  '''tests/fixtures/.*''',
+]
+regexes = [
+  '''sha256:0{64}''',        # digests d'exemple dans les overlays
+  '''EXEMPLE_[A-Z_]+''',
+]

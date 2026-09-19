@@ -1,0 +1,8 @@
+*.tfstate
+*.tfstate.backup
+.terraform/
+sbom.json
+*.sarif
+scan-*.json
+.env
+.DS_Store

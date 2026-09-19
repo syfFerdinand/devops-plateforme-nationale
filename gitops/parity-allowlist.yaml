@@ -1,0 +1,22 @@
+# Écarts AUTORISÉS entre recette et production (docs/03 §3).
+# Toute différence hors de cette liste fait échouer la PR de promotion.
+# Chaque entrée est datée et justifiée ; une entrée sans justification est retirée en revue mensuelle.
+allowed_differences:
+  - path: metadata.namespace
+    raison: "Isolation des environnements"
+  - path: spec.replicas
+    raison: "Dimensionnement : ratio prod/recette = 3"
+  - path: spec.template.spec.containers[*].resources
+    raison: "Dimensionnement nominal en production"
+  - path: spec.minReplicas
+    raison: "Dimensionnement HPA"
+  - path: spec.maxReplicas
+    raison: "Dimensionnement HPA"
+  - path: spec.template.spec.containers[*].image
+    raison: "Digest promu, identique après promotion — écart transitoire pendant la validation"
+  - path: data.API_BASE_URL
+    raison: "Raccordement aux services de l'environnement"
+  - path: spec.dataFrom[*].extract.key
+    raison: "Cloisonnement des chemins Vault par environnement"
+  - path: spec.strategy
+    raison: "Blue/green en recette, canary en production (ADR-0003)"

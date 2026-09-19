@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: dev
+resources: [../../base]
+# Seules les 3 catégories autorisées d'écart figurent ici (voir docs/03 §2).
+images:
+  - name: registry.service-public.gouv.tg/app-usagers
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+replicas:
+  - { name: app-usagers, count: 1 }        # dimensionnement
+patches:
+  - path: patch-env.yaml                    # raccordement + sensibilité
+  - path: patch-strategy.yaml               # rolling update en dev (voir docs/05 §1)
+configMapGenerator:
+  - name: app-usagers-config
+    literals:
+      - LOG_LEVEL=debug
+      - API_BASE_URL=https://api.dev.service-public.gouv.tg
