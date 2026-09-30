@@ -48,7 +48,7 @@ jobs:
         with: { fetch-depth: 0 }
       - run: make test-unit
       - name: Quality gate SonarQube (bloquant)
-        uses: SonarSource/sonarqube-scan-action@v4
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - uses: SonarSource/sonarqube-quality-gate-action@v1
